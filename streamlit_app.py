@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from zoneinfo import ZoneInfo
 
 # ====== Resort config (Idaho + nearby; colors per resort) ======
+# Timezones: Most of Idaho is Mountain (America/Boise). Panhandle resorts use Pacific (America/Los_Angeles).
 RESORTS = {
     # Southwest / Central Idaho (Mountain Time)
     "Tamarack (ID)": {"lat": 44.671, "lon": -116.123, "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
@@ -62,7 +63,7 @@ RESORTS = {
                              "tz": ZoneInfo("America/Los_Angeles"),
                              "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"}},
 
-    # Nearby Wyoming (Mountain Time - Denver alias)
+    # Nearby Wyoming
     "Grand Targhee (WY)": {"lat": 43.789, "lon": -110.957, "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
                            "tz": ZoneInfo("America/Denver"),
                            "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"}},
@@ -168,19 +169,23 @@ if show_history:
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
-        # Group by local date, show only Date + Snow columns (no unnamed index)
+        # Group by local date, ensure only Date + Snow columns (no unnamed index)
         hist_daily = (
             df_hist.groupby(df_hist["time_local"].dt.date)
                   .agg({"snow_in": "sum"})
-                  .reset_index()
+                  .reset_index()  # index dropped; Date column created
                   .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
         )
         hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
 
         st.subheader(f"{resort_choice} — Previous {history_days} Days")
-        st.table(hist_daily[["Date", "Snow (in.)"]].style.format({"Snow (in.)": "{:.1f}"}))
+        st.table(
+            hist_daily[["Date", "Snow (in.)"]]
+            .reset_index(drop=True)  # guarantee no index column shown
+            .style.format({"Snow (in.)": "{:.1f}"})
+        )
 
-        # Optional: Previous days bar chart
+        # Optional: Previous days bar chart (with labels)
         colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
         fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
         bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
@@ -190,7 +195,6 @@ if show_history:
         ax_prev.spines["top"].set_visible(False)
         ax_prev.spines["right"].set_visible(False)
         ax_prev.legend()
-        # Data labels
         for bar in bars_prev:
             h = bar.get_height()
             ax_prev.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width()/2, h), xytext=(0, 3),
@@ -254,13 +258,17 @@ out_daily["Date"] = out_daily.index.date
 daily_totals = (
     out_daily.groupby("Date")
              .agg({"snow_mean": "sum"})
-             .reset_index()
+             .reset_index()  # index dropped; Date column created
              .rename(columns={"snow_mean": "Snow (in.)"})
 )
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Table (only Date + Snow; no unnamed index column)
-st.table(daily_totals[["Date", "Snow (in.)"]].reset_index(drop=True).style.format({"Snow (in.)": "{:.1f}"}))
+# Table (only Date + Snow; ensure no index column is shown)
+st.table(
+    daily_totals[["Date", "Snow (in.)"]]
+    .reset_index(drop=True)  # guarantee no numbered index
+    .style.format({"Snow (in.)": "{:.1f}"})
+)
 
 # Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
