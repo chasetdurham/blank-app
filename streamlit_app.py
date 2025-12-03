@@ -13,9 +13,7 @@ import matplotlib.pyplot as plt
 from zoneinfo import ZoneInfo
 
 # ====== Resort Config ======
-# Timezones: Most of Idaho is Mountain (America/Boise), Panhandle is Pacific (America/Los_Angeles).
 RESORTS = {
-    # Mountain Time (America/Boise)
     "Tamarack (ID)": {
         "lat": 44.671, "lon": -116.123,
         "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
@@ -49,23 +47,22 @@ RESORTS = {
         "base_ft": 8100, "mid_ft": 8600, "summit_ft": 9000,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#2ecc71", "accent": "#1d8348", "fill": "#d5f5e3"},
-        "logo_url": ""
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Pomerelle_Mountain_logo.png"
     },
     "Soldier Mountain (ID)": {
         "lat": 43.481, "lon": -114.920,
         "base_ft": 5700, "mid_ft": 6800, "summit_ft": 7100,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#7f8c8d", "accent": "#34495e", "fill": "#d6dbdf"},
-        "logo_url": ""
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Soldier_Mountain_logo.png"
     },
     "Kelly Canyon (ID)": {
         "lat": 43.605, "lon": -111.587,
         "base_ft": 5700, "mid_ft": 6100, "summit_ft": 6600,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a2d9ce"},
-        "logo_url": ""
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Kelly_Canyon_logo.png"
     },
-    # Pacific Time (America/Los_Angeles) — Idaho Panhandle
     "Schweitzer (ID)": {
         "lat": 48.369, "lon": -116.623,
         "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
@@ -78,16 +75,15 @@ RESORTS = {
         "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
         "tz": ZoneInfo("America/Los_Angeles"),
         "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"},
-        "logo_url": ""
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Silver_Mountain_logo.png"
     },
     "Lookout Pass (ID/MT)": {
         "lat": 47.456, "lon": -115.713,
         "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
         "tz": ZoneInfo("America/Los_Angeles"),
         "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
-        "logo_url": ""
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Lookout_Pass_logo.png"
     },
-    # Nearby (Wyoming) requested
     "Grand Targhee (WY)": {
         "lat": 43.789, "lon": -110.957,
         "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
@@ -110,7 +106,6 @@ VALID_MODELS = {"gfs_seamless", "icon_seamless", "ecmwf_ifs04"}
 def feet_to_m(ft): return ft * 0.3048
 def mm_to_inches(mm): return mm / 25.4
 def slr_from_temp(tc):
-    # Simple snow-to-liquid ratio estimation by temperature
     if tc <= -12: return 22.0
     if tc <= -6: return 18.0
     if tc <= -2: return 14.0
@@ -185,7 +180,7 @@ with st.sidebar:
         sorted(list(VALID_MODELS)),
         default=["gfs_seamless", "icon_seamless"]
     )
-    hours = st.slider("Hours ahead (forecast)", 24, 384, 168, step=24)
+    days = st.slider("Days ahead (forecast)", 1, 16, 7)  # changed from hours to days
     show_history = st.checkbox("Show previous days snow totals", value=True)
     history_days = st.number_input("History days to fetch", 1, 30, 7)
     run_click = st.button("Run Forecast")
@@ -194,17 +189,21 @@ if not run_click:
     st.stop()
 
 # Logo + dynamic title
-if resort.get("logo_url"):
-    st.image(resort["logo_url"], width=200)
+logo_url = resort.get("logo_url")
+if logo_url:
+    try:
+        st.image(logo_url, width=200)
+    except Exception:
+        pass  # if a logo URL fails, continue without breaking
 st.title(f"Chase's {resort_choice} Pow Outlook")
 
 # ====== Dates (local to resort) ======
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
-FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(hours=hours)
+FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(days=days)
 HIST_START_LOCAL = NOW_LOCAL - datetime.timedelta(days=history_days)
 HIST_END_LOCAL = NOW_LOCAL - datetime.timedelta(hours=1)
 
-# ====== History ======
+# ====== History (Previous X Days) ======
 if show_history:
     try:
         df_hist, elev_hist = fetch_historical(
@@ -218,20 +217,16 @@ if show_history:
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
-        hist_daily = df_hist.groupby(df_hist["time_local"].dt.date).agg({"snow_in": "sum"})
-        hist_daily.index = pd.to_datetime(hist_daily.index).strftime("%m/%d/%y")
-        hist_daily = hist_daily.rename(columns={"snow_in": "Snow (in.)"})
-        hist_daily = hist_daily.reset_index().rename(columns={"index": "Date"})
+        hist_daily = df_hist.groupby(df_hist["time_local"].dt.date).agg({"snow_in": "sum"}).reset_index()
+        hist_daily = hist_daily.rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
+        hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
 
         st.subheader(f"{resort_choice} — Previous {history_days} Days")
-        st.table(
-            hist_daily.style
-            .format({"Snow (in.)": "{:.2f}"})
-        )
+        st.table(hist_daily.style.format({"Snow (in.)": "{:.1f}"}))
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
-# ====== Forecast ======
+# ====== Forecast (ensemble across selected models) ======
 model_frames = []
 for m in models_selected or [None]:
     try:
@@ -251,15 +246,15 @@ for m in models_selected or [None]:
         st.warning(f"Forecast model {m or 'auto'} failed: {e}")
 
 if not model_frames:
-    st.error("No model data available. Try shorter forecast window or check network.")
+    st.error("No model data available. Try fewer days or check network.")
     st.stop()
 
-# ====== Ensemble ======
+# ====== Ensemble aggregation ======
 ensemble_df = pd.concat(model_frames, ignore_index=True)
 pivot = ensemble_df.pivot_table(index="time_local", columns="model", values="snow_in")
 out = pd.DataFrame(index=pivot.index)
 out["snow_mean"] = pivot.mean(axis=1)
-out["snow_std"] = pivot.std(axis=1).fillna(0.0)
+out["snow_std"] = pivot.std(axis=1).fillna(0.0)  # used for shading only
 
 # ====== Forecast plot (Hourly, local time) ======
 colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
@@ -279,29 +274,36 @@ fig.set_facecolor("white")
 ax.set_facecolor("#fbfdff")
 st.pyplot(fig)
 
-# ====== Daily totals summary (local dates) ======
+# ====== Daily Totals Summary (local dates) ======
 st.subheader("Daily Totals Summary")
 out_daily = out.copy()
-out_daily["local_date"] = out_daily.index.date
-daily_totals = out_daily.groupby("local_date").agg({"snow_mean": "sum"}).rename(columns={"snow_mean": "Snow (in.)"})
-daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
+out_daily["Date"] = out_daily.index.date
+daily_totals = out_daily.groupby("Date").agg({"snow_mean": "sum"}).reset_index()
+daily_totals = daily_totals.rename(columns={"snow_mean": "Snow (in.)"})
+daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Table with desired labels
-daily_table = daily_totals.reset_index().rename(columns={"index": "Date"})
-st.table(
-    daily_table.style
-    .format({"Snow (in.)": "{:.2f}"})
-)
+# Table
+st.table(daily_totals.style.format({"Snow (in.)": "{:.1f}"}))
 
-# Bar chart (daily snow only) with diagonal x labels
+# Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
-ax2.bar(daily_totals.index, daily_totals["Snow (in.)"], color=colors["primary"], label="Daily Snow (in.)", alpha=0.9)
+bars = ax2.bar(daily_totals["Date"], daily_totals["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
 ax2.set_xlabel("Date (MM/DD/YY)")
 ax2.set_ylabel("Snow (in.)")
 ax2.spines["top"].set_visible(False)
 ax2.spines["right"].set_visible(False)
-plt.xticks(rotation=30, ha="right")  # diagonal-ish for readability
+plt.xticks(rotation=30, ha="right")
 ax2.legend()
+
+# Data labels on each bar (one decimal place)
+for bar in bars:
+    height = bar.get_height()
+    ax2.annotate(f"{height:.1f}",
+                 xy=(bar.get_x() + bar.get_width() / 2, height),
+                 xytext=(0, 3),
+                 textcoords="offset points",
+                 ha="center", va="bottom", fontsize=9, color="black")
+
 fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
