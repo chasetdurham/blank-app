@@ -206,10 +206,6 @@ with st.sidebar:
         show_history = st.checkbox("Show previous days snow totals", value=True)
         history_days = st.number_input("History days to fetch", 1, 30, 7)
 
-
-if not run_click:
-    st.stop()
-
 # Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
 
