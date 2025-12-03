@@ -1,7 +1,7 @@
 """
-Streamlit app: OpenSnow-style ensemble for Tamarack Resort.
+Streamlit app: OpenSnow-style ensemble for Idaho and nearby resorts.
 Uses Open-Meteo forecast for future, and historical API for past data.
-Run with: streamlit run tamarack_streamlit_app.py
+Run with: streamlit run idaho_resorts_forecast.py
 """
 
 import streamlit as st
@@ -10,16 +10,83 @@ import pandas as pd
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
+from zoneinfo import ZoneInfo
 
-# ====== Config ======
-LAT, LON = 44.671, -116.123
-BASE_FT, MID_FT, SUMMIT_FT = 4900, 6600, 7700
+# ====== Resort Config ======
+# Timezones: Most of Idaho is Mountain (America/Boise), Panhandle is Pacific (America/Los_Angeles).
+RESORTS = {
+    # Mountain Time (America/Boise)
+    "Tamarack (ID)": {
+        "lat": 44.671, "lon": -116.123,
+        "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Sun Valley (ID)": {
+        "lat": 43.697, "lon": -114.351,
+        "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Bogus Basin (ID)": {
+        "lat": 43.767, "lon": -116.101,
+        "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Brundage (ID)": {
+        "lat": 45.004, "lon": -116.155,
+        "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Pomerelle (ID)": {
+        "lat": 42.314, "lon": -113.563,
+        "base_ft": 8100, "mid_ft": 8600, "summit_ft": 9000,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Soldier Mountain (ID)": {
+        "lat": 43.481, "lon": -114.920,
+        "base_ft": 5700, "mid_ft": 6800, "summit_ft": 7100,
+        "tz": ZoneInfo("America/Boise")
+    },
+    "Kelly Canyon (ID)": {
+        "lat": 43.605, "lon": -111.587,
+        "base_ft": 5700, "mid_ft": 6100, "summit_ft": 6600,
+        "tz": ZoneInfo("America/Boise")
+    },
+    # Pacific Time (America/Los_Angeles) — Idaho Panhandle
+    "Schweitzer (ID)": {
+        "lat": 48.369, "lon": -116.623,
+        "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
+        "tz": ZoneInfo("America/Los_Angeles")
+    },
+    "Silver Mountain (ID)": {
+        "lat": 47.529, "lon": -116.120,
+        "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
+        "tz": ZoneInfo("America/Los_Angeles")
+    },
+    "Lookout Pass (ID/MT)": {
+        "lat": 47.456, "lon": -115.713,
+        "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
+        "tz": ZoneInfo("America/Los_Angeles")
+    },
+    # Nearby (Wyoming) requested
+    "Grand Targhee (WY)": {
+        "lat": 43.789, "lon": -110.957,
+        "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
+        "tz": ZoneInfo("America/Denver")
+    },
+    "Jackson Hole (WY)": {
+        "lat": 43.587, "lon": -110.827,
+        "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
+        "tz": ZoneInfo("America/Denver")
+    },
+}
+
 VALID_MODELS = {"gfs_seamless", "icon_seamless", "ecmwf_ifs04"}
 
 # ====== Helpers ======
 def feet_to_m(ft): return ft * 0.3048
 def mm_to_inches(mm): return mm / 25.4
 def slr_from_temp(tc):
+    # Simple snow-to-liquid ratio estimation by temperature
     if tc <= -12: return 22.0
     if tc <= -6: return 18.0
     if tc <= -2: return 14.0
@@ -31,15 +98,17 @@ def _safe_get(url, timeout=30):
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
-        try: msg = r.json().get("reason", "")
-        except: msg = ""
+        try:
+            msg = r.json().get("reason", "")
+        except Exception:
+            msg = ""
         raise requests.HTTPError(f"{e}. {msg}".strip()) from None
     return r.json()
 
-def fetch_forecast(model, start_dt, end_dt):
+def fetch_forecast(lat, lon, tz, model, start_dt, end_dt, base_ft):
     base = (
         "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={LAT}&longitude={LON}"
+        f"?latitude={lat}&longitude={lon}"
         f"&hourly=temperature_2m,precipitation"
         f"&start_date={start_dt.date()}"
         f"&end_date={end_dt.date()}"
@@ -47,49 +116,52 @@ def fetch_forecast(model, start_dt, end_dt):
     )
     url = base + f"&models={model}" if model else base
     j = _safe_get(url)
-    times = pd.to_datetime(j["hourly"]["time"])
+    times = pd.to_datetime(j["hourly"]["time"]).tz_localize("UTC").tz_convert(tz)
     temps = j["hourly"]["temperature_2m"]
     qpf = j["hourly"]["precipitation"]
-    elev = j.get("elevation", feet_to_m(BASE_FT))
-    df = pd.DataFrame({"time_utc": times, "t_C": temps, "qpf_mm": qpf})
-    df = df[(df["time_utc"] >= start_dt) & (df["time_utc"] <= end_dt)].reset_index(drop=True)
+    elev = j.get("elevation", feet_to_m(base_ft))
+    df = pd.DataFrame({"time_local": times, "t_C": temps, "qpf_mm": qpf})
+    df = df[(df["time_local"] >= start_dt) & (df["time_local"] <= end_dt)].reset_index(drop=True)
     return df, elev
 
-def fetch_historical(start_dt, end_dt):
+def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
     url = (
         "https://archive-api.open-meteo.com/v1/archive"
-        f"?latitude={LAT}&longitude={LON}"
+        f"?latitude={lat}&longitude={lon}"
         f"&hourly=temperature_2m,precipitation"
         f"&start_date={start_dt.date()}"
         f"&end_date={end_dt.date()}"
         f"&timezone=UTC&models=era5"
     )
     j = _safe_get(url)
-    times = pd.to_datetime(j["hourly"]["time"])
+    times = pd.to_datetime(j["hourly"]["time"]).tz_localize("UTC").tz_convert(tz)
     temps = j["hourly"]["temperature_2m"]
     qpf = j["hourly"]["precipitation"]
-    elev = j.get("elevation", feet_to_m(BASE_FT))
-    df = pd.DataFrame({"time_utc": times, "t_C": temps, "qpf_mm": qpf})
-    df = df[(df["time_utc"] >= start_dt) & (df["time_utc"] <= end_dt)].reset_index(drop=True)
+    elev = j.get("elevation", feet_to_m(base_ft))
+    df = pd.DataFrame({"time_local": times, "t_C": temps, "qpf_mm": qpf})
+    df = df[(df["time_local"] >= start_dt) & (df["time_local"] <= end_dt)].reset_index(drop=True)
     return df, elev
 
 # ====== UI ======
-st.set_page_config(page_title="Tamarack — OpenSnow-style Forecast", layout="wide")
-st.title("Tamarack Resort — OpenSnow-style Forecast (Demo)")
+st.set_page_config(page_title="Idaho Resorts — OpenSnow-style Forecast", layout="wide")
+st.title("Idaho & Nearby Resorts — OpenSnow-style Forecast (Demo)")
 
 with st.sidebar:
     st.header("Options")
+    resort_choice = st.selectbox("Choose resort", sorted(list(RESORTS.keys())))
+    resort = RESORTS[resort_choice]
+
     elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
     if elev_choice == "Base":
-        resort_elev_ft = BASE_FT
+        resort_elev_ft = resort["base_ft"]
     elif elev_choice == "Mid":
-        resort_elev_ft = MID_FT
+        resort_elev_ft = resort["mid_ft"]
     else:
-        resort_elev_ft = SUMMIT_FT
+        resort_elev_ft = resort["summit_ft"]
 
     models_selected = st.multiselect(
         "Models to include",
-        list(VALID_MODELS),
+        sorted(list(VALID_MODELS)),
         default=["gfs_seamless", "icon_seamless"]
     )
     hours = st.slider("Hours ahead (forecast)", 24, 384, 168, step=24)
@@ -98,29 +170,34 @@ with st.sidebar:
     run_click = st.button("Run Forecast")
 
 if not run_click:
-    st.info("Choose models and options in the sidebar and click **Run Forecast**.")
+    st.info("Choose resort and options in the sidebar and click **Run Forecast**.")
     st.stop()
 
-# ====== Dates ======
-NOW_UTC = datetime.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
-FORECAST_END_UTC = NOW_UTC + datetime.timedelta(hours=hours)
-HIST_START_UTC = NOW_UTC - datetime.timedelta(days=history_days)
-HIST_END_UTC = NOW_UTC - datetime.timedelta(hours=1)
+# ====== Dates (local to resort) ======
+NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
+FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(hours=hours)
+HIST_START_LOCAL = NOW_LOCAL - datetime.timedelta(days=history_days)
+HIST_END_LOCAL = NOW_LOCAL - datetime.timedelta(hours=1)
 
 # ====== History ======
 if show_history:
     try:
-        df_hist, elev_hist = fetch_historical(HIST_START_UTC, HIST_END_UTC)
-        lapse = 0.0065
+        df_hist, elev_hist = fetch_historical(
+            resort["lat"], resort["lon"], resort["tz"],
+            HIST_START_LOCAL, HIST_END_LOCAL, resort["base_ft"]
+        )
+        lapse = 0.0065  # K per meter
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_hist) * lapse
         df_hist["t_C_adj"] = df_hist["t_C"] + temp_adj
         df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
         df_hist["model"] = "era5"
-        hist_daily = df_hist.groupby(df_hist["time_utc"].dt.date).agg({"snow_in":"sum"})
-        st.subheader(f"Previous {history_days} days snow totals (in)")
-        st.table(hist_daily.style.format({"snow_in":"{:.2f}"}))
+
+        hist_daily = df_hist.groupby(df_hist["time_local"].dt.date).agg({"snow_in": "sum"})
+        hist_daily.index = pd.to_datetime(hist_daily.index).strftime("%m/%d/%y")
+        st.subheader(f"{resort_choice} — Previous {history_days} days snow totals (in)")
+        st.table(hist_daily.style.format({"snow_in": "{:.2f}"}))
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
@@ -128,15 +205,18 @@ if show_history:
 model_frames = []
 for m in models_selected or [None]:
     try:
-        df_fcst, elev_fcst = fetch_forecast(m, NOW_UTC, FORECAST_END_UTC)
-        lapse = 0.0065
+        df_fcst, elev_fcst = fetch_forecast(
+            resort["lat"], resort["lon"], resort["tz"],
+            m, NOW_LOCAL, FORECAST_END_LOCAL, resort["base_ft"]
+        )
+        lapse = 0.0065  # K per meter
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_fcst) * lapse
         df_fcst["t_C_adj"] = df_fcst["t_C"] + temp_adj
         df_fcst["qpf_in"] = df_fcst["qpf_mm"].apply(mm_to_inches)
         df_fcst["slr"] = df_fcst["t_C_adj"].apply(slr_from_temp)
         df_fcst["snow_in"] = df_fcst["qpf_in"] * df_fcst["slr"]
         df_fcst["model"] = m or "auto"
-        model_frames.append(df_fcst[["time_utc","t_C_adj","qpf_in","slr","snow_in","model"]])
+        model_frames.append(df_fcst[["time_local", "t_C_adj", "qpf_in", "slr", "snow_in", "model"]])
     except Exception as e:
         st.warning(f"Forecast model {m or 'auto'} failed: {e}")
 
@@ -146,115 +226,63 @@ if not model_frames:
 
 # ====== Ensemble ======
 ensemble_df = pd.concat(model_frames, ignore_index=True)
-pivot = ensemble_df.pivot_table(index="time_utc", columns="model", values="snow_in")
+pivot = ensemble_df.pivot_table(index="time_local", columns="model", values="snow_in")
 out = pd.DataFrame(index=pivot.index)
 out["snow_mean"] = pivot.mean(axis=1)
-out["snow_median"] = pivot.median(axis=1)
 out["snow_std"] = pivot.std(axis=1).fillna(0.0)
-out["liq_mean"] = ensemble_df.pivot_table(index="time_utc", columns="model", values="qpf_in").mean(axis=1)
 
-# ====== Display ======
-st.subheader("Quick stats")
-c1, c2, c3 = st.columns(3)
-c1.metric("Forecast window (UTC)", f"{NOW_UTC.strftime('%m/%d/%y %H:%M')} → {FORECAST_END_UTC.strftime('%m/%d/%y %H:%M')}", "")
-c2.metric("Models used", ", ".join([m or "auto" for m in models_selected]), "")
-c3.metric("Elevation choice", elev_choice)
+# ====== Forecast plot (Hourly, local time) ======
+st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
+fig, ax = plt.subplots(figsize=(12, 4))
+t = out.index
+ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
+ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
+ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
+ax.set_xlabel("Local time")
+ax.set_ylabel("Snow (in)")
+ax.legend()
+st.pyplot(fig)
 
-# ====== Chart toggle ======
-chart_choice = st.radio("Select chart to view:", ["Hourly Forecast", "Daily Totals"], index=0)
+# ====== Hourly table ======
+st.subheader("Hourly table (first 120 rows)")
+display_df = out.reset_index().rename(columns={"index": "time_local"}).head(120)
+display_df["time_local"] = display_df["time_local"].dt.strftime("%m/%d/%y %H:%M")
+st.dataframe(display_df.style.format({
+    "snow_mean": "{:.2f}",
+    "snow_std": "{:.2f}"
+}))
+csv = display_df.to_csv(index=False).encode("utf-8")
+st.download_button(
+    "Download CSV (hourly)",
+    data=csv,
+    file_name=f"{resort_choice.lower().replace(' ','_').replace('(','').replace(')','')}_forecast_hourly.csv",
+    mime="text/csv"
+)
 
-if chart_choice == "Hourly Forecast":
-    st.subheader("Forecast plot (Hourly)")
-    fig, ax = plt.subplots(figsize=(12,4))
-    t = out.index
-    ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
-    ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
-    ax.fill_between(t, out["snow_mean"]-out["snow_std"], out["snow_mean"]+out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
-    ax.set_xlabel("UTC")
-    ax.set_ylabel("Snow (in)")
-    ax.legend()
-    st.pyplot(fig)
-
-    st.subheader("Hourly table (first 120 rows)")
-    display_df = out.reset_index().rename(columns={"index":"time_utc"}).head(120)
-    display_df["time_utc"] = display_df["time_utc"].dt.strftime("%m/%d/%y %H:%M")
-    st.dataframe(display_df.style.format({
-        "snow_mean": "{:.2f}",
-        "snow_std": "{:.2f}",
-        "liq_mean": "{:.2f}"
-    }))
-
-    csv = display_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "Download CSV (hourly)",
-        data=csv,
-        file_name="tamarack_forecast_hourly.csv",
-        mime="text/csv"
-    )
-
-elif chart_choice == "Daily Totals":
-    st.subheader("Daily Totals Summary")
-    out_daily = out.copy()
-    out_daily["local_date"] = out_daily.index.date
-    daily_totals = out_daily.groupby("local_date").agg({
-        "liq_mean": "sum",
-        "snow_mean": "sum",
-        "snow_std": "mean"
-    }).rename(columns={
-        "liq_mean": "Liquid (in)",
-        "snow_mean": "Snow (in)",
-        "snow_std": "Std Dev"
-    })
-
-    # Format date column
-    daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
-
-    # Table
-    st.table(daily_totals.style.format({
-        "Liquid (in)": "{:.2f}",
-        "Snow (in)": "{:.2f}",
-        "Std Dev": "{:.2f}"
-    }))
-
-    # Bar chart
-    fig2, ax2 = plt.subplots(figsize=(10,4))
-    ax2.bar(daily_totals.index, daily_totals["Snow (in)"], color="skyblue", label="Daily Snow (in)")
-    ax2.plot(daily_totals.index, daily_totals["Liquid (in)"], color="navy", marker="o", label="Daily Liquid (in)")
-    ax2.set_xlabel("Date (MM/DD/YY)")
-    ax2.set_ylabel("Totals (in)")
-    ax2.legend()
-    st.pyplot(fig2)
-
-st.info("Note: Historical data comes from Open‑Meteo archive API; forecast from standard API.")
-
-
-# ====== Daily totals summary ======
+# ====== Daily totals summary (local dates) ======
 st.subheader("Daily Totals Summary")
 out_daily = out.copy()
 out_daily["local_date"] = out_daily.index.date
 daily_totals = out_daily.groupby("local_date").agg({
-    "liq_mean": "sum",
     "snow_mean": "sum",
     "snow_std": "mean"
 }).rename(columns={
-    "liq_mean": "Liquid (in)",
     "snow_mean": "Snow (in)",
     "snow_std": "Std Dev"
 })
+daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
 
 # Table
 st.table(daily_totals.style.format({
-    "Liquid (in)": "{:.2f}",
     "Snow (in)": "{:.2f}",
     "Std Dev": "{:.2f}"
 }))
 
-# Bar chart
-fig2, ax2 = plt.subplots(figsize=(10,4))
+# Bar chart (daily snow only)
+fig2, ax2 = plt.subplots(figsize=(10, 4))
 ax2.bar(daily_totals.index, daily_totals["Snow (in)"], color="skyblue", label="Daily Snow (in)")
-ax2.plot(daily_totals.index, daily_totals["Liquid (in)"], color="navy", marker="o", label="Daily Liquid (in)")
-ax2.set_xlabel("Date")
-ax2.set_ylabel("Totals (in)")
+ax2.set_xlabel("Date (MM/DD/YY)")
+ax2.set_ylabel("Snow (in)")
 ax2.legend()
 st.pyplot(fig2)
 
