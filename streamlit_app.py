@@ -171,22 +171,6 @@ ax.set_ylabel("Snow (in)")
 ax.legend()
 st.pyplot(fig)
 
-# ====== Hourly table ======
-st.subheader("Hourly table (first 120 rows)")
-display_df = out.reset_index().rename(columns={"index":"time_utc"}).head(120)
-st.dataframe(display_df.style.format({
-    "snow_mean": "{:.2f}",
-    "snow_std": "{:.2f}",
-    "liq_mean": "{:.2f}"
-}))
-
-csv = display_df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    "Download CSV (hourly)",
-    data=csv,
-    file_name="tamarack_forecast_hourly.csv",
-    mime="text/csv"
-)
 
 # ====== Daily totals summary ======
 st.subheader("Daily Totals Summary")
