@@ -29,15 +29,17 @@ RESORTS = {
         "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"},
-        "webcam_url": "https://brundage.com/webcams/"
+        "webcam_url": "https://brundage.com/live-cams/?title=base-area-snow-cam"
     },
     "Bogus Basin (ID)": {
         "lat": 43.767, "lon": -116.101,
         "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"},
-        "webcam_url": "https://bogusbasin.org/webcams/"
-    },
+        # Use the YouTube embed link you provided
+    "webcam_url": "https://www.youtube.com/embed/g714uvR8Rjg?si=ranKNhTUPB_jbmYs"
+},
+
     "Sun Valley (ID)": {
         "lat": 43.697, "lon": -114.351,
         "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,
@@ -50,8 +52,10 @@ RESORTS = {
         "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
         "tz": ZoneInfo("America/Los_Angeles"),
         "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"},
-        "webcam_url": "https://www.schweitzer.com/mountain/webcams/"
-    },
+       # Use the YouTube embed link you provided
+    "webcam_url": "https://www.youtube.com/embed/osT7v3ZS9bI?si=zQ6mfkiuhcY_2Dv-"
+},
+
     "Silver Mountain (ID)": {
         "lat": 47.529, "lon": -116.120,
         "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
@@ -71,8 +75,10 @@ RESORTS = {
         "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
         "tz": ZoneInfo("America/Denver"),
         "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"},
-        "webcam_url": "https://www.grandtarghee.com/the-mountain/cams-conditions/webcams"
-    },
+        # Use the YouTube embed link you provided
+    "webcam_url": "https://www.youtube.com/embed/B4KTi91qL-4?si=qNu8NHUdGn-M9tOr"
+},
+
     "Jackson Hole (WY)": {
         "lat": 43.587, "lon": -110.827,
         "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
