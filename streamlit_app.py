@@ -130,51 +130,7 @@ FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(days=days)
 HIST_START_LOCAL = NOW_LOCAL - datetime.timedelta(days=history_days)
 HIST_END_LOCAL = NOW_LOCAL - datetime.timedelta(hours=1)
 
-# ====== History ======
-if show_history:
-    try:
-        df_hist, elev_hist = fetch_historical(resort["lat"], resort["lon"], resort["tz"],
-                                              HIST_START_LOCAL, HIST_END_LOCAL, resort["base_ft"])
-        lapse = 0.0065  # K per meter
-        temp_adj = -(feet_to_m(resort_elev_ft) - elev_hist) * lapse
-        df_hist["t_C_adj"] = df_hist["t_C"] + temp_adj
-        df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
-        df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
-        df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
-        hist_daily = (
-            df_hist.groupby(df_hist["time_local"].dt.date)
-                  .agg({"snow_in": "sum"})
-                  .reset_index()
-                  .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
-        )
-        hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
-
-        st.subheader(f"{resort_choice} — Previous {history_days} Days")
-        st.table(
-            hist_daily[["Date", "Snow (in.)"]]
-            .reset_index(drop=True)
-            .style.format({"Snow (in.)": "{:.1f}"})
-        )
-
-        # Optional: Previous days bar chart (with labels)
-        colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
-        fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
-        bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
-        ax_prev.set_xlabel("Date (MM/DD/YY)")
-        ax_prev.set_ylabel("Snow (in.)")
-        plt.xticks(rotation=30, ha="right")
-        ax_prev.spines["top"].set_visible(False)
-        ax_prev.spines["right"].set_visible(False)
-        ax_prev.legend()
-        for bar in bars_prev:
-            h = bar.get_height()
-            ax_prev.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width()/2, h), xytext=(0, 3),
-                             textcoords="offset points", ha="center", va="bottom", fontsize=9)
-        st.pyplot(fig_prev)
-
-    except Exception as e:
-        st.warning(f"Historical fetch failed: {e}")
 
 # ====== Forecast (ensemble across default models) ======
 model_frames = []
@@ -262,6 +218,53 @@ fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
 
+
+# ====== History ======
+if show_history:
+    try:
+        df_hist, elev_hist = fetch_historical(resort["lat"], resort["lon"], resort["tz"],
+                                              HIST_START_LOCAL, HIST_END_LOCAL, resort["base_ft"])
+        lapse = 0.0065  # K per meter
+        temp_adj = -(feet_to_m(resort_elev_ft) - elev_hist) * lapse
+        df_hist["t_C_adj"] = df_hist["t_C"] + temp_adj
+        df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
+        df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
+        df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
+
+        hist_daily = (
+            df_hist.groupby(df_hist["time_local"].dt.date)
+                  .agg({"snow_in": "sum"})
+                  .reset_index()
+                  .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
+        )
+        hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
+
+        st.subheader(f"{resort_choice} — Previous {history_days} Days")
+        st.table(
+            hist_daily[["Date", "Snow (in.)"]]
+            .reset_index(drop=True)
+            .style.format({"Snow (in.)": "{:.1f}"})
+        )
+
+        # Optional: Previous days bar chart (with labels)
+        colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
+        fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
+        bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
+        ax_prev.set_xlabel("Date (MM/DD/YY)")
+        ax_prev.set_ylabel("Snow (in.)")
+        plt.xticks(rotation=30, ha="right")
+        ax_prev.spines["top"].set_visible(False)
+        ax_prev.spines["right"].set_visible(False)
+        ax_prev.legend()
+        for bar in bars_prev:
+            h = bar.get_height()
+            ax_prev.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width()/2, h), xytext=(0, 3),
+                             textcoords="offset points", ha="center", va="bottom", fontsize=9)
+        st.pyplot(fig_prev)
+
+    except Exception as e:
+        st.warning(f"Historical fetch failed: {e}")
+        
 # ====== Live Cams (at bottom) ======
 if "webcam_urls" in resort and resort["webcam_urls"]:
     st.subheader("Live Cams")
