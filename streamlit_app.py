@@ -5,6 +5,10 @@ Run with: streamlit run idaho_resorts_forecast.py
 """
 
 import streamlit as st
+st.set_page_config(
+    page_title="Chase's Pow Outlook",
+    
+)
 import requests
 import pandas as pd
 import datetime
