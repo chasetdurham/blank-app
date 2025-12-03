@@ -15,7 +15,10 @@ from zoneinfo import ZoneInfo
 RESORTS = {
     "Tamarack (ID)": {"lat":44.671,"lon":-116.123,"base_ft":4900,"mid_ft":6600,"summit_ft":7700,"tz":ZoneInfo("America/Boise"),
         "colors":{"primary":"#1f77b4","accent":"#0d3d56","fill":"#a6cbe3"},
-        "webcam_url":"https://tamarackidaho.com/webcams"},
+        # Use the YouTube embed link
+    "webcam_url": "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc"
+},
+
     "Brundage (ID)": {"lat":45.004,"lon":-116.155,"base_ft":5776,"mid_ft":7000,"summit_ft":7640,"tz":ZoneInfo("America/Boise"),
         "colors":{"primary":"#3498db","accent":"#1a5276","fill":"#aed6f1"},
         "webcam_url":"https://brundage.com/webcams/"},
