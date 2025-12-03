@@ -86,6 +86,15 @@ RESORTS = {
         "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"},
         "webcam_url": "https://www.jacksonhole.com/live-mountain-cams"
     },
+"Niseko Grand Hirafu (JP)": {
+    "lat": 42.856, "lon": 140.704,   # approximate coordinates
+    "base_ft": 1000, "mid_ft": 2500, "summit_ft": 4000,  # adjust if you want more precise
+    "tz": ZoneInfo("Asia/Tokyo"),
+    "colors": {"primary": "#2ecc71", "accent": "#145a32", "fill": "#abebc6"},
+    # YouTube live cam link you provided
+    "webcam_url": "https://www.youtube.com/embed/taDZzy8yMTw?si=RM06dEVWWjFaZRDg"
+},
+
 }
 
 DEFAULT_MODELS = ["gfs_seamless", "icon_seamless"]
