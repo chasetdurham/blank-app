@@ -171,5 +171,5 @@ ax.set_ylabel("Snow (in)")
 ax.legend()
 st.pyplot(fig)
 
-st.subheader("Hourly table (first 120 rows)")
-display_df
+# ====== Hourly table ======
+st.subheader("
