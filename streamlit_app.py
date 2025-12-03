@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 
 # ====== Config ======
 LAT, LON = 44.671, -116.123
-BASE_FT, SUMMIT_FT = 4900, 7700
-VALID_MODELS = {"gfs", "icon", "ecmwf"}
+BASE_FT, MID_FT, SUMMIT_FT = 4900, 6600, 7700
+VALID_MODELS = {"gfs_seamless", "icon_seamless", "ecmwf_ifs04"}
 
 # ====== Helpers ======
 def feet_to_m(ft): return ft * 0.3048
@@ -37,7 +37,14 @@ def _safe_get(url, timeout=30):
     return r.json()
 
 def fetch_forecast(model, start_dt, end_dt):
-    base = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&hourly=temperature_2m,precipitation&start_date={start_dt.date()}&end_date={end_dt.date()}&timezone=UTC"
+    base = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={LAT}&longitude={LON}"
+        f"&hourly=temperature_2m,precipitation"
+        f"&start_date={start_dt.date()}"
+        f"&end_date={end_dt.date()}"
+        f"&timezone=UTC"
+    )
     url = base + f"&models={model}" if model else base
     j = _safe_get(url)
     times = pd.to_datetime(j["hourly"]["time"])
@@ -49,7 +56,14 @@ def fetch_forecast(model, start_dt, end_dt):
     return df, elev
 
 def fetch_historical(start_dt, end_dt):
-    url = f"https://archive-api.open-meteo.com/v1/archive?latitude={LAT}&longitude={LON}&hourly=temperature_2m,precipitation&start_date={start_dt.date()}&end_date={end_dt.date()}&timezone=UTC&models=era5"
+    url = (
+        "https://archive-api.open-meteo.com/v1/archive"
+        f"?latitude={LAT}&longitude={LON}"
+        f"&hourly=temperature_2m,precipitation"
+        f"&start_date={start_dt.date()}"
+        f"&end_date={end_dt.date()}"
+        f"&timezone=UTC&models=era5"
+    )
     j = _safe_get(url)
     times = pd.to_datetime(j["hourly"]["time"])
     temps = j["hourly"]["temperature_2m"]
@@ -65,8 +79,19 @@ st.title("Tamarack Resort — OpenSnow-style Forecast (Demo)")
 
 with st.sidebar:
     st.header("Options")
-    resort_elev_ft = st.number_input("Resort elevation (ft)", value=6600, min_value=BASE_FT, max_value=SUMMIT_FT)
-    models_selected = [m for m in st.multiselect("Models to include", list(VALID_MODELS), default=["gfs", "icon"]) if m in VALID_MODELS]
+    elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
+    if elev_choice == "Base":
+        resort_elev_ft = BASE_FT
+    elif elev_choice == "Mid":
+        resort_elev_ft = MID_FT
+    else:
+        resort_elev_ft = SUMMIT_FT
+
+    models_selected = st.multiselect(
+        "Models to include",
+        list(VALID_MODELS),
+        default=["gfs_seamless", "icon_seamless"]
+    )
     hours = st.slider("Hours ahead (forecast)", 24, 384, 168, step=24)
     show_history = st.checkbox("Show previous days snow totals", value=True)
     history_days = st.number_input("History days to fetch", 1, 30, 7)
@@ -133,7 +158,7 @@ st.subheader("Quick stats")
 c1, c2, c3 = st.columns(3)
 c1.metric("Forecast window (UTC)", f"{NOW_UTC.isoformat()} → {FORECAST_END_UTC.isoformat()}", "")
 c2.metric("Models used", ", ".join([m or "auto" for m in models_selected]), "")
-c3.metric("Resort elev (ft)", f"{resort_elev_ft}", "")
+c3.metric("Elevation choice", elev_choice)
 
 st.subheader("Forecast plot")
 fig, ax = plt.subplots(figsize=(12,4))
@@ -143,16 +168,4 @@ ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label
 ax.fill_between(t, out["snow_mean"]-out["snow_std"], out["snow_mean"]+out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
 ax.set_xlabel("UTC")
 ax.set_ylabel("Snow (in)")
-ax.legend()
-st.pyplot(fig)
-
-st.subheader("Hourly table (first 120 rows)")
-display_df = out.reset_index().rename(columns={"index":"time_utc"}).head(120)
-st.dataframe(display_df.style.format({
-    "snow_mean": "{:.2f}",
-    "snow_std": "{:.2f}",
-    "liq_mean": "{:.2f}"
-}))
-
-csv = display_df.to_csv(index=False).encode("utf-8")
-st
+ax.legend
