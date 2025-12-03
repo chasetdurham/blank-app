@@ -15,13 +15,11 @@ from zoneinfo import ZoneInfo
 RESORTS = {
     "Tamarack (ID)": {"lat":44.671,"lon":-116.123,"base_ft":4900,"mid_ft":6600,"summit_ft":7700,"tz":ZoneInfo("America/Boise"),
         "colors":{"primary":"#1f77b4","accent":"#0d3d56","fill":"#a6cbe3"},
-        # Use the YouTube embed link
-    "webcam_urls": [
-        "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
-        "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
-    ]
-},
-
+        "webcam_urls": [
+            "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
+            "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
+        ]
+    },
     "Brundage (ID)": {"lat":45.004,"lon":-116.155,"base_ft":5776,"mid_ft":7000,"summit_ft":7640,"tz":ZoneInfo("America/Boise"),
         "colors":{"primary":"#3498db","accent":"#1a5276","fill":"#aed6f1"},
         "webcam_url":"https://brundage.com/webcams/"},
@@ -120,9 +118,7 @@ with st.sidebar:
 if not run_click:
     st.stop()
 
-# Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
-
 
 # ====== Dates ======
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
@@ -135,7 +131,7 @@ if show_history:
     try:
         df_hist, elev_hist = fetch_historical(resort["lat"], resort["lon"], resort["tz"],
                                               HIST_START_LOCAL, HIST_END_LOCAL, resort["base_ft"])
-        lapse = 0.0065  # K per meter
+        lapse = 0.0065
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_hist) * lapse
         df_hist["t_C_adj"] = df_hist["t_C"] + temp_adj
         df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
@@ -154,10 +150,11 @@ if show_history:
         st.table(
             hist_daily[["Date", "Snow (in.)"]]
             .reset_index(drop=True)
-            .style.format({"Snow (in.)": "{:.1f}"})
+            .style.hide_index()
+            .format({"Snow (in.)": "{:.1f}"})
         )
 
-        # Optional: Previous days bar chart (with labels)
+        # Previous days bar chart
         colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
         fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
         bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
@@ -176,7 +173,7 @@ if show_history:
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
-# ====== Forecast (ensemble across default models) ======
+# ====== Forecast ======
 model_frames = []
 for m in DEFAULT_MODELS or [None]:
     try:
@@ -199,14 +196,13 @@ if not model_frames:
     st.error("No model data available. Try fewer days or check network.")
     st.stop()
 
-# ====== Ensemble aggregation ======
 ensemble_df = pd.concat(model_frames, ignore_index=True)
 pivot = ensemble_df.pivot_table(index="time_local", columns="model", values="snow_in")
 out = pd.DataFrame(index=pivot.index)
 out["snow_mean"] = pivot.mean(axis=1)
 out["snow_std"] = pivot.std(axis=1).fillna(0.0)
 
-# ====== Forecast plot (Hourly, local time) ======
+# ====== Forecast plot (Hourly) ======
 colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
 st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
 fig, ax = plt.subplots(figsize=(12, 4))
@@ -223,7 +219,7 @@ fig.set_facecolor("white")
 ax.set_facecolor("#fbfdff")
 st.pyplot(fig)
 
-# ====== Daily Totals Summary (local dates) ======
+# ====== Daily Totals Summary ======
 st.subheader("Daily Totals Summary")
 out_daily = out.copy()
 out_daily["Date"] = out_daily.index.date
@@ -235,14 +231,13 @@ daily_totals = (
 )
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Table (only Date + Snow; no numbered index column)
 st.table(
     daily_totals[["Date", "Snow (in.)"]]
     .reset_index(drop=True)
-    .style.format({"Snow (in.)": "{:.1f}"})
+    .style.hide_index()
+    .format({"Snow (in.)": "{:.1f}"})
 )
 
-# Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
 bars = ax2.bar(daily_totals["Date"], daily_totals["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
 ax2.set_xlabel("Date (MM/DD/YY)")
@@ -251,18 +246,15 @@ ax2.spines["top"].set_visible(False)
 ax2.spines["right"].set_visible(False)
 plt.xticks(rotation=30, ha="right")
 ax2.legend()
-
 for bar in bars:
     h = bar.get_height()
     ax2.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width() / 2, h), xytext=(0, 3),
                  textcoords="offset points", ha="center", va="bottom", fontsize=9, color="black")
-
-
 fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
 
-# ====== Live Cams (at bottom) ======
+# ====== Live Cams ======
 if "webcam_urls" in resort and resort["webcam_urls"]:
     st.subheader("Live Cams")
     for url in resort["webcam_urls"]:
@@ -273,3 +265,4 @@ elif "webcam_url" in resort and resort["webcam_url"]:
         st.video(resort["webcam_url"])
     else:
         st.components.v1.iframe(resort["webcam_url"], height=400)
+
