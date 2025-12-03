@@ -7,121 +7,68 @@ Run with: streamlit run idaho_resorts_forecast.py
 import streamlit as st
 import requests
 import pandas as pd
-import numpy as np
 import datetime
 import matplotlib.pyplot as plt
 from zoneinfo import ZoneInfo
 
 # ====== Resort config (Idaho + nearby; colors per resort) ======
-# Timezones: Most of Idaho is Mountain (America/Boise). Panhandle resorts use Pacific (America/Los_Angeles).
 RESORTS = {
     # Southwest / Central Idaho (Mountain Time)
-    "Tamarack (ID)": {
-        "lat": 44.671, "lon": -116.123,
-        "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"}
-    },
-    "Brundage (ID)": {
-        "lat": 45.004, "lon": -116.155,
-        "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"}
-    },
-    "Little Ski Hill (ID)": {
-        "lat": 45.000, "lon": -116.161,
-        "base_ft": 5200, "mid_ft": 5300, "summit_ft": 5400,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#2e86c1", "accent": "#1b4f72", "fill": "#d6eaf8"}
-    },
-    "Bogus Basin (ID)": {
-        "lat": 43.767, "lon": -116.101,
-        "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"}
-    },
-    "Soldier Mountain (ID)": {
-        "lat": 43.481, "lon": -114.920,
-        "base_ft": 5700, "mid_ft": 6800, "summit_ft": 7100,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#7f8c8d", "accent": "#34495e", "fill": "#d6dbdf"}
-    },
-    "Magic Mountain (ID)": {
-        "lat": 42.182, "lon": -114.298,
-        "base_ft": 6400, "mid_ft": 6700, "summit_ft": 7000,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#8e44ad", "accent": "#512e5f", "fill": "#e8daef"}
-    },
-    "Pomerelle (ID)": {
-        "lat": 42.314, "lon": -113.563,
-        "base_ft": 8100, "mid_ft": 8600, "summit_ft": 9000,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#2ecc71", "accent": "#1d8348", "fill": "#d5f5e3"}
-    },
-    "Sun Valley (ID)": {
-        "lat": 43.697, "lon": -114.351,
-        "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,  # Bald Mountain summit approx
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#e67e22", "accent": "#873600", "fill": "#f5cba7"}
-    },
-    "Rotarun (ID)": {
-        "lat": 43.511, "lon": -114.317,
-        "base_ft": 5800, "mid_ft": 6000, "summit_ft": 6200,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#b9770e", "accent": "#6e2c00", "fill": "#f9e79f"}
-    },
-    "Kelly Canyon (ID)": {
-        "lat": 43.605, "lon": -111.587,
-        "base_ft": 5700, "mid_ft": 6100, "summit_ft": 6600,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a2d9ce"}
-    },
-    "Pebble Creek (ID)": {
-        "lat": 42.782, "lon": -112.103,
-        "base_ft": 6300, "mid_ft": 7400, "summit_ft": 8560,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"}
-    },
-    "Snowhaven (ID)": {
-        "lat": 45.915, "lon": -116.152,
-        "base_ft": 5000, "mid_ft": 5200, "summit_ft": 5400,
-        "tz": ZoneInfo("America/Boise"),
-        "colors": {"primary": "#5dade2", "accent": "#1b4f72", "fill": "#d6eaf8"}
-    },
+    "Tamarack (ID)": {"lat": 44.671, "lon": -116.123, "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
+                      "tz": ZoneInfo("America/Boise"),
+                      "colors": {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"}},
+    "Brundage (ID)": {"lat": 45.004, "lon": -116.155, "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
+                      "tz": ZoneInfo("America/Boise"),
+                      "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"}},
+    "Little Ski Hill (ID)": {"lat": 45.000, "lon": -116.161, "base_ft": 5200, "mid_ft": 5300, "summit_ft": 5400,
+                             "tz": ZoneInfo("America/Boise"),
+                             "colors": {"primary": "#2e86c1", "accent": "#1b4f72", "fill": "#d6eaf8"}},
+    "Bogus Basin (ID)": {"lat": 43.767, "lon": -116.101, "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
+                         "tz": ZoneInfo("America/Boise"),
+                         "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"}},
+    "Soldier Mountain (ID)": {"lat": 43.481, "lon": -114.920, "base_ft": 5700, "mid_ft": 6800, "summit_ft": 7100,
+                              "tz": ZoneInfo("America/Boise"),
+                              "colors": {"primary": "#7f8c8d", "accent": "#34495e", "fill": "#d6dbdf"}},
+    "Magic Mountain (ID)": {"lat": 42.182, "lon": -114.298, "base_ft": 6400, "mid_ft": 6700, "summit_ft": 7000,
+                            "tz": ZoneInfo("America/Boise"),
+                            "colors": {"primary": "#8e44ad", "accent": "#512e5f", "fill": "#e8daef"}},
+    "Pomerelle (ID)": {"lat": 42.314, "lon": -113.563, "base_ft": 8100, "mid_ft": 8600, "summit_ft": 9000,
+                       "tz": ZoneInfo("America/Boise"),
+                       "colors": {"primary": "#2ecc71", "accent": "#1d8348", "fill": "#d5f5e3"}},
+    "Sun Valley (ID)": {"lat": 43.697, "lon": -114.351, "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,
+                        "tz": ZoneInfo("America/Boise"),
+                        "colors": {"primary": "#e67e22", "accent": "#873600", "fill": "#f5cba7"}},
+    "Rotarun (ID)": {"lat": 43.511, "lon": -114.317, "base_ft": 5800, "mid_ft": 6000, "summit_ft": 6200,
+                     "tz": ZoneInfo("America/Boise"),
+                     "colors": {"primary": "#b9770e", "accent": "#6e2c00", "fill": "#f9e79f"}},
+    "Kelly Canyon (ID)": {"lat": 43.605, "lon": -111.587, "base_ft": 5700, "mid_ft": 6100, "summit_ft": 6600,
+                          "tz": ZoneInfo("America/Boise"),
+                          "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a2d9ce"}},
+    "Pebble Creek (ID)": {"lat": 42.782, "lon": -112.103, "base_ft": 6300, "mid_ft": 7400, "summit_ft": 8560,
+                          "tz": ZoneInfo("America/Boise"),
+                          "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"}},
+    "Snowhaven (ID)": {"lat": 45.915, "lon": -116.152, "base_ft": 5000, "mid_ft": 5200, "summit_ft": 5400,
+                       "tz": ZoneInfo("America/Boise"),
+                       "colors": {"primary": "#5dade2", "accent": "#1b4f72", "fill": "#d6eaf8"}},
 
     # Idaho Panhandle (Pacific Time)
-    "Schweitzer (ID)": {
-        "lat": 48.369, "lon": -116.623,
-        "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
-        "tz": ZoneInfo("America/Los_Angeles"),
-        "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"}
-    },
-    "Silver Mountain (ID)": {
-        "lat": 47.529, "lon": -116.120,
-        "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
-        "tz": ZoneInfo("America/Los_Angeles"),
-        "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"}
-    },
-    "Lookout Pass (ID/MT)": {
-        "lat": 47.456, "lon": -115.713,
-        "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
-        "tz": ZoneInfo("America/Los_Angeles"),
-        "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"}
-    },
+    "Schweitzer (ID)": {"lat": 48.369, "lon": -116.623, "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
+                        "tz": ZoneInfo("America/Los_Angeles"),
+                        "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"}},
+    "Silver Mountain (ID)": {"lat": 47.529, "lon": -116.120, "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
+                             "tz": ZoneInfo("America/Los_Angeles"),
+                             "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"}},
+    "Lookout Pass (ID/MT)": {"lat": 47.456, "lon": -115.713, "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
+                             "tz": ZoneInfo("America/Los_Angeles"),
+                             "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"}},
 
-    # Nearby requested (Wyoming)
-    "Grand Targhee (WY)": {
-        "lat": 43.789, "lon": -110.957,
-        "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
-        "tz": ZoneInfo("America/Denver"),
-        "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"}
-    },
-    "Jackson Hole (WY)": {
-        "lat": 43.587, "lon": -110.827,
-        "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
-        "tz": ZoneInfo("America/Denver"),
-        "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"}
-    },
+    # Nearby Wyoming (Mountain Time - Denver alias)
+    "Grand Targhee (WY)": {"lat": 43.789, "lon": -110.957, "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
+                           "tz": ZoneInfo("America/Denver"),
+                           "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"}},
+    "Jackson Hole (WY)": {"lat": 43.587, "lon": -110.827, "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
+                          "tz": ZoneInfo("America/Denver"),
+                          "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"}},
 }
 
 # Internal default models (selector hidden)
@@ -188,13 +135,9 @@ with st.sidebar:
     resort = RESORTS[resort_choice]
 
     elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
-    resort_elev_ft = (
-        resort["base_ft"] if elev_choice == "Base" else
-        resort["mid_ft"] if elev_choice == "Mid" else
-        resort["summit_ft"]
-    )
+    resort_elev_ft = resort["base_ft"] if elev_choice == "Base" else resort["mid_ft"] if elev_choice == "Mid" else resort["summit_ft"]
 
-    days = st.slider("Days ahead (forecast)", 1, 16, 7)  # forecast window in days
+    days = st.slider("Days ahead (forecast)", 1, 16, 7)  # forecast window in days (not hours)
     show_history = st.checkbox("Show previous days snow totals", value=True)
     history_days = st.number_input("History days to fetch", 1, 30, 7)
     run_click = st.button("Run Forecast")
@@ -225,7 +168,7 @@ if show_history:
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
-        # Group by local date, ensure only Date + Snow columns (no unnamed index)
+        # Group by local date, show only Date + Snow columns (no unnamed index)
         hist_daily = (
             df_hist.groupby(df_hist["time_local"].dt.date)
                   .agg({"snow_in": "sum"})
@@ -236,6 +179,24 @@ if show_history:
 
         st.subheader(f"{resort_choice} — Previous {history_days} Days")
         st.table(hist_daily[["Date", "Snow (in.)"]].style.format({"Snow (in.)": "{:.1f}"}))
+
+        # Optional: Previous days bar chart
+        colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
+        fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
+        bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
+        ax_prev.set_xlabel("Date (MM/DD/YY)")
+        ax_prev.set_ylabel("Snow (in.)")
+        plt.xticks(rotation=30, ha="right")
+        ax_prev.spines["top"].set_visible(False)
+        ax_prev.spines["right"].set_visible(False)
+        ax_prev.legend()
+        # Data labels
+        for bar in bars_prev:
+            h = bar.get_height()
+            ax_prev.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width()/2, h), xytext=(0, 3),
+                             textcoords="offset points", ha="center", va="bottom", fontsize=9)
+        st.pyplot(fig_prev)
+
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
@@ -271,15 +232,12 @@ out["snow_std"] = pivot.std(axis=1).fillna(0.0)  # for shading only
 
 # ====== Forecast plot (Hourly, local time) ======
 colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
-
 st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
 fig, ax = plt.subplots(figsize=(12, 4))
 t = out.index
 ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", color=colors["primary"], alpha=0.7)
-ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(),
-        linewidth=2, label="24‑hr rolling snow (in)", color=colors["accent"])
-ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"],
-                alpha=0.25, color=colors["fill"], label="Ensemble ±1σ")
+ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)", color=colors["accent"])
+ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"], alpha=0.25, color=colors["fill"], label="Ensemble ±1σ")
 ax.set_xlabel("Local time")
 ax.set_ylabel("Snow (in)")
 ax.spines["top"].set_visible(False)
@@ -301,13 +259,12 @@ daily_totals = (
 )
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Table (only Date + Snow)
-st.table(daily_totals[["Date", "Snow (in.)"]].style.format({"Snow (in.)": "{:.1f}"}))
+# Table (only Date + Snow; no unnamed index column)
+st.table(daily_totals[["Date", "Snow (in.)"]].reset_index(drop=True).style.format({"Snow (in.)": "{:.1f}"}))
 
 # Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
-bars = ax2.bar(daily_totals["Date"], daily_totals["Snow (in.)"],
-               color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
+bars = ax2.bar(daily_totals["Date"], daily_totals["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
 ax2.set_xlabel("Date (MM/DD/YY)")
 ax2.set_ylabel("Snow (in.)")
 ax2.spines["top"].set_visible(False)
@@ -317,12 +274,9 @@ ax2.legend()
 
 # Data labels on each bar (one decimal place)
 for bar in bars:
-    height = bar.get_height()
-    ax2.annotate(f"{height:.1f}",
-                 xy=(bar.get_x() + bar.get_width() / 2, height),
-                 xytext=(0, 3),
-                 textcoords="offset points",
-                 ha="center", va="bottom", fontsize=9, color="black")
+    h = bar.get_height()
+    ax2.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width() / 2, h), xytext=(0, 3),
+                 textcoords="offset points", ha="center", va="bottom", fontsize=9, color="black")
 
 fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
