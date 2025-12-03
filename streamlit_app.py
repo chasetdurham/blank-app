@@ -13,39 +13,73 @@ from zoneinfo import ZoneInfo
 
 # ====== Resort config ======
 RESORTS = {
-    "Tamarack (ID)": {"lat":44.671,"lon":-116.123,"base_ft":4900,"mid_ft":6600,"summit_ft":7700,"tz":ZoneInfo("America/Boise"),
-        "colors":{"primary":"#1f77b4","accent":"#0d3d56","fill":"#a6cbe3"},
-        # Use the YouTube embed link
-    "webcam_urls": [
-        "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
-        "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
-    ]
-},
-
-    "Brundage (ID)": {"lat":45.004,"lon":-116.155,"base_ft":5776,"mid_ft":7000,"summit_ft":7640,"tz":ZoneInfo("America/Boise"),
-        "colors":{"primary":"#3498db","accent":"#1a5276","fill":"#aed6f1"},
-        "webcam_url":"https://brundage.com/webcams/"},
-    "Bogus Basin (ID)": {"lat":43.767,"lon":-116.101,"base_ft":5800,"mid_ft":7000,"summit_ft":7600,"tz":ZoneInfo("America/Boise"),
-        "colors":{"primary":"#27ae60","accent":"#145a32","fill":"#abebc6"},
-        "webcam_url":"https://bogusbasin.org/webcams/"},
-    "Sun Valley (ID)": {"lat":43.697,"lon":-114.351,"base_ft":5750,"mid_ft":7200,"summit_ft":9150,"tz":ZoneInfo("America/Boise"),
-        "colors":{"primary":"#e67e22","accent":"#873600","fill":"#f5cba7"},
-        "webcam_url":"https://www.sunvalley.com/mountain/webcams"},
-    "Schweitzer (ID)": {"lat":48.369,"lon":-116.623,"base_ft":3900,"mid_ft":5000,"summit_ft":6400,"tz":ZoneInfo("America/Los_Angeles"),
-        "colors":{"primary":"#9b59b6","accent":"#4a235a","fill":"#d7bde2"},
-        "webcam_url":"https://www.schweitzer.com/mountain/webcams/"},
-    "Silver Mountain (ID)": {"lat":47.529,"lon":-116.120,"base_ft":4700,"mid_ft":5500,"summit_ft":6300,"tz":ZoneInfo("America/Los_Angeles"),
-        "colors":{"primary":"#95a5a6","accent":"#2c3e50","fill":"#ccd1d1"},
-        "webcam_url":"https://silvermt.com/webcams"},
-    "Lookout Pass (ID/MT)": {"lat":47.456,"lon":-115.713,"base_ft":4500,"mid_ft":5000,"summit_ft":5600,"tz":ZoneInfo("America/Los_Angeles"),
-        "colors":{"primary":"#e74c3c","accent":"#922b21","fill":"#f5b7b1"},
-        "webcam_url":"https://skilookout.com/webcams"},
-    "Grand Targhee (WY)": {"lat":43.789,"lon":-110.957,"base_ft":8000,"mid_ft":8500,"summit_ft":9920,"tz":ZoneInfo("America/Denver"),
-        "colors":{"primary":"#f1c40f","accent":"#7d6608","fill":"#f9e79f"},
-        "webcam_url":"https://www.grandtarghee.com/the-mountain/cams-conditions/webcams"},
-    "Jackson Hole (WY)": {"lat":43.587,"lon":-110.827,"base_ft":6311,"mid_ft":8000,"summit_ft":10450,"tz":ZoneInfo("America/Denver"),
-        "colors":{"primary":"#c0392b","accent":"#641e16","fill":"#f5b7b1"},
-        "webcam_url":"https://www.jacksonhole.com/live-mountain-cams"},
+    "Tamarack (ID)": {
+        "lat": 44.671, "lon": -116.123,
+        "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"},
+        # Two YouTube cameras
+        "webcam_urls": [
+            "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
+            "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
+        ]
+    },
+    "Brundage (ID)": {
+        "lat": 45.004, "lon": -116.155,
+        "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"},
+        "webcam_url": "https://brundage.com/webcams/"
+    },
+    "Bogus Basin (ID)": {
+        "lat": 43.767, "lon": -116.101,
+        "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"},
+        "webcam_url": "https://bogusbasin.org/webcams/"
+    },
+    "Sun Valley (ID)": {
+        "lat": 43.697, "lon": -114.351,
+        "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#e67e22", "accent": "#873600", "fill": "#f5cba7"},
+        "webcam_url": "https://www.sunvalley.com/mountain/webcams"
+    },
+    "Schweitzer (ID)": {
+        "lat": 48.369, "lon": -116.623,
+        "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"},
+        "webcam_url": "https://www.schweitzer.com/mountain/webcams/"
+    },
+    "Silver Mountain (ID)": {
+        "lat": 47.529, "lon": -116.120,
+        "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"},
+        "webcam_url": "https://silvermt.com/webcams"
+    },
+    "Lookout Pass (ID/MT)": {
+        "lat": 47.456, "lon": -115.713,
+        "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
+        "webcam_url": "https://skilookout.com/webcams"
+    },
+    "Grand Targhee (WY)": {
+        "lat": 43.789, "lon": -110.957,
+        "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"},
+        "webcam_url": "https://www.grandtarghee.com/the-mountain/cams-conditions/webcams"
+    },
+    "Jackson Hole (WY)": {
+        "lat": 43.587, "lon": -110.827,
+        "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"},
+        "webcam_url": "https://www.jacksonhole.com/live-mountain-cams"
+    },
 }
 
 DEFAULT_MODELS = ["gfs_seamless", "icon_seamless"]
@@ -123,14 +157,11 @@ if not run_click:
 # Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
 
-
 # ====== Dates ======
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
 FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(days=days)
 HIST_START_LOCAL = NOW_LOCAL - datetime.timedelta(days=history_days)
 HIST_END_LOCAL = NOW_LOCAL - datetime.timedelta(hours=1)
-
-
 
 # ====== Forecast (ensemble across default models) ======
 model_frames = []
@@ -140,7 +171,7 @@ for m in DEFAULT_MODELS or [None]:
             resort["lat"], resort["lon"], resort["tz"],
             m, NOW_LOCAL, FORECAST_END_LOCAL, resort["base_ft"]
         )
-        lapse = 0.0065
+        lapse = 0.0065  # K per meter
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_fcst) * lapse
         df_fcst["t_C_adj"] = df_fcst["t_C"] + temp_adj
         df_fcst["qpf_in"] = df_fcst["qpf_mm"].apply(mm_to_inches)
@@ -191,12 +222,10 @@ daily_totals = (
 )
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Table (only Date + Snow; no numbered index column)
-st.table(
-    daily_totals[["Date", "Snow (in.)"]]
-    .reset_index(drop=True)
-    .style.format({"Snow (in.)": "{:.1f}"})
-)
+# Display table without index column (no Styler to avoid index reappearing)
+daily_totals_display = daily_totals[["Date", "Snow (in.)"]].reset_index(drop=True)
+daily_totals_display["Snow (in.)"] = daily_totals_display["Snow (in.)"].map("{:.1f}".format)
+st.dataframe(daily_totals_display, hide_index=True)
 
 # Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
@@ -213,11 +242,9 @@ for bar in bars:
     ax2.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width() / 2, h), xytext=(0, 3),
                  textcoords="offset points", ha="center", va="bottom", fontsize=9, color="black")
 
-
 fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
-
 
 # ====== History ======
 if show_history:
@@ -240,13 +267,13 @@ if show_history:
         hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
 
         st.subheader(f"{resort_choice} — Previous {history_days} Days")
-        st.table(
-            hist_daily[["Date", "Snow (in.)"]]
-            .reset_index(drop=True)
-            .style.format({"Snow (in.)": "{:.1f}"})
-        )
 
-        # Optional: Previous days bar chart (with labels)
+        # Display table without index column
+        hist_daily_display = hist_daily[["Date", "Snow (in.)"]].reset_index(drop=True)
+        hist_daily_display["Snow (in.)"] = hist_daily_display["Snow (in.)"].map("{:.1f}".format)
+        st.dataframe(hist_daily_display, hide_index=True)
+
+        # Previous days bar chart
         colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
         fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
         bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
@@ -264,7 +291,7 @@ if show_history:
 
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
-        
+
 # ====== Live Cams (at bottom) ======
 if "webcam_urls" in resort and resort["webcam_urls"]:
     st.subheader("Live Cams")
