@@ -156,20 +156,76 @@ out["liq_mean"] = ensemble_df.pivot_table(index="time_utc", columns="model", val
 # ====== Display ======
 st.subheader("Quick stats")
 c1, c2, c3 = st.columns(3)
-c1.metric("Forecast window (UTC)", f"{NOW_UTC.isoformat()} → {FORECAST_END_UTC.isoformat()}", "")
+c1.metric("Forecast window (UTC)", f"{NOW_UTC.strftime('%m/%d/%y %H:%M')} → {FORECAST_END_UTC.strftime('%m/%d/%y %H:%M')}", "")
 c2.metric("Models used", ", ".join([m or "auto" for m in models_selected]), "")
 c3.metric("Elevation choice", elev_choice)
 
-st.subheader("Forecast plot")
-fig, ax = plt.subplots(figsize=(12,4))
-t = out.index
-ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
-ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
-ax.fill_between(t, out["snow_mean"]-out["snow_std"], out["snow_mean"]+out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
-ax.set_xlabel("UTC")
-ax.set_ylabel("Snow (in)")
-ax.legend()
-st.pyplot(fig)
+# ====== Chart toggle ======
+chart_choice = st.radio("Select chart to view:", ["Hourly Forecast", "Daily Totals"], index=0)
+
+if chart_choice == "Hourly Forecast":
+    st.subheader("Forecast plot (Hourly)")
+    fig, ax = plt.subplots(figsize=(12,4))
+    t = out.index
+    ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
+    ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
+    ax.fill_between(t, out["snow_mean"]-out["snow_std"], out["snow_mean"]+out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
+    ax.set_xlabel("UTC")
+    ax.set_ylabel("Snow (in)")
+    ax.legend()
+    st.pyplot(fig)
+
+    st.subheader("Hourly table (first 120 rows)")
+    display_df = out.reset_index().rename(columns={"index":"time_utc"}).head(120)
+    display_df["time_utc"] = display_df["time_utc"].dt.strftime("%m/%d/%y %H:%M")
+    st.dataframe(display_df.style.format({
+        "snow_mean": "{:.2f}",
+        "snow_std": "{:.2f}",
+        "liq_mean": "{:.2f}"
+    }))
+
+    csv = display_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "Download CSV (hourly)",
+        data=csv,
+        file_name="tamarack_forecast_hourly.csv",
+        mime="text/csv"
+    )
+
+elif chart_choice == "Daily Totals":
+    st.subheader("Daily Totals Summary")
+    out_daily = out.copy()
+    out_daily["local_date"] = out_daily.index.date
+    daily_totals = out_daily.groupby("local_date").agg({
+        "liq_mean": "sum",
+        "snow_mean": "sum",
+        "snow_std": "mean"
+    }).rename(columns={
+        "liq_mean": "Liquid (in)",
+        "snow_mean": "Snow (in)",
+        "snow_std": "Std Dev"
+    })
+
+    # Format date column
+    daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
+
+    # Table
+    st.table(daily_totals.style.format({
+        "Liquid (in)": "{:.2f}",
+        "Snow (in)": "{:.2f}",
+        "Std Dev": "{:.2f}"
+    }))
+
+    # Bar chart
+    fig2, ax2 = plt.subplots(figsize=(10,4))
+    ax2.bar(daily_totals.index, daily_totals["Snow (in)"], color="skyblue", label="Daily Snow (in)")
+    ax2.plot(daily_totals.index, daily_totals["Liquid (in)"], color="navy", marker="o", label="Daily Liquid (in)")
+    ax2.set_xlabel("Date (MM/DD/YY)")
+    ax2.set_ylabel("Totals (in)")
+    ax2.legend()
+    st.pyplot(fig2)
+
+st.info("Note: Historical data comes from Open‑Meteo archive API; forecast from standard API.")
 
 
 # ====== Daily totals summary ======
