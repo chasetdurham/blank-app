@@ -165,15 +165,11 @@ fig, ax = plt.subplots(figsize=(12,4))
 t = out.index
 ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
 ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
-ax.fill_between(
-    t,
-    out["snow_mean"] - out["snow_std"],
-    out["snow_mean"] + out["snow_std"],
-    alpha=0.2,
-    label="Ensemble ±1σ"
-)
+ax.fill_between(t, out["snow_mean"]-out["snow_std"], out["snow_mean"]+out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
 ax.set_xlabel("UTC")
 ax.set_ylabel("Snow (in)")
-ax.legend()   # <-- add parentheses here
+ax.legend()
 st.pyplot(fig)
 
+st.subheader("Hourly table (first 120 rows)")
+display_df
