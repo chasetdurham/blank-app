@@ -210,8 +210,8 @@ fig.set_facecolor("white")
 ax.set_facecolor("#fbfdff")
 st.pyplot(fig)
 
-# ====== Daily Totals Summary (local dates) ======
-st.subheader("Daily Totals Summary")
+# ====== Daily Forecast Totals Summary (local dates) ======
+st.subheader("Daily Forecast Totals")
 out_daily = out.copy()
 out_daily["Date"] = out_daily.index.date
 daily_totals = (
