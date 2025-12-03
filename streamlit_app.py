@@ -16,7 +16,10 @@ RESORTS = {
     "Tamarack (ID)": {"lat":44.671,"lon":-116.123,"base_ft":4900,"mid_ft":6600,"summit_ft":7700,"tz":ZoneInfo("America/Boise"),
         "colors":{"primary":"#1f77b4","accent":"#0d3d56","fill":"#a6cbe3"},
         # Use the YouTube embed link
-    "webcam_url": "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc"
+    "webcam_urls": [
+        "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
+        "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
+    ]
 },
 
     "Brundage (ID)": {"lat":45.004,"lon":-116.155,"base_ft":5776,"mid_ft":7000,"summit_ft":7640,"tz":ZoneInfo("America/Boise"),
@@ -120,13 +123,6 @@ if not run_click:
 # Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
 
-# Webcam
-if "webcam_url" in resort and resort["webcam_url"]:
-    st.subheader("Live Cam")
-    if "youtube.com" in resort["webcam_url"]:
-        st.video(resort["webcam_url"])
-    else:
-        st.components.v1.iframe(resort["webcam_url"], height=400)
 
 # ====== Dates ======
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
@@ -260,6 +256,19 @@ for bar in bars:
     h = bar.get_height()
     ax2.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width() / 2, h), xytext=(0, 3),
                  textcoords="offset points", ha="center", va="bottom", fontsize=9, color="black")
+
+# ====== Live Cams (at bottom) ======
+if "webcam_urls" in resort and resort["webcam_urls"]:
+    st.subheader("Live Cams")
+    for url in resort["webcam_urls"]:
+        st.video(url)
+elif "webcam_url" in resort and resort["webcam_url"]:
+    st.subheader("Live Cam")
+    if "youtube.com" in resort["webcam_url"]:
+        st.video(resort["webcam_url"])
+    else:
+        st.components.v1.iframe(resort["webcam_url"], height=400)
+
 
 fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
