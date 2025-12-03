@@ -172,4 +172,50 @@ ax.legend()
 st.pyplot(fig)
 
 # ====== Hourly table ======
-st.subheader("
+st.subheader("Hourly table (first 120 rows)")
+display_df = out.reset_index().rename(columns={"index":"time_utc"}).head(120)
+st.dataframe(display_df.style.format({
+    "snow_mean": "{:.2f}",
+    "snow_std": "{:.2f}",
+    "liq_mean": "{:.2f}"
+}))
+
+csv = display_df.to_csv(index=False).encode("utf-8")
+st.download_button(
+    "Download CSV (hourly)",
+    data=csv,
+    file_name="tamarack_forecast_hourly.csv",
+    mime="text/csv"
+)
+
+# ====== Daily totals summary ======
+st.subheader("Daily Totals Summary")
+out_daily = out.copy()
+out_daily["local_date"] = out_daily.index.date
+daily_totals = out_daily.groupby("local_date").agg({
+    "liq_mean": "sum",
+    "snow_mean": "sum",
+    "snow_std": "mean"
+}).rename(columns={
+    "liq_mean": "Liquid (in)",
+    "snow_mean": "Snow (in)",
+    "snow_std": "Std Dev"
+})
+
+# Table
+st.table(daily_totals.style.format({
+    "Liquid (in)": "{:.2f}",
+    "Snow (in)": "{:.2f}",
+    "Std Dev": "{:.2f}"
+}))
+
+# Bar chart
+fig2, ax2 = plt.subplots(figsize=(10,4))
+ax2.bar(daily_totals.index, daily_totals["Snow (in)"], color="skyblue", label="Daily Snow (in)")
+ax2.plot(daily_totals.index, daily_totals["Liquid (in)"], color="navy", marker="o", label="Daily Liquid (in)")
+ax2.set_xlabel("Date")
+ax2.set_ylabel("Totals (in)")
+ax2.legend()
+st.pyplot(fig2)
+
+st.info("Note: Historical data comes from Open‑Meteo archive API; forecast from standard API.")
