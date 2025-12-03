@@ -173,7 +173,7 @@ if show_history:
         hist_daily = (
             df_hist.groupby(df_hist["time_local"].dt.date)
                   .agg({"snow_in": "sum"})
-                  .reset_index()  # index dropped; Date column created
+                  .reset_index(drop=True)  # index dropped; Date column created
                   .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
         )
         hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
