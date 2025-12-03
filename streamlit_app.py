@@ -187,24 +187,24 @@ def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
 # ====== UI ======
 st.set_page_config(page_title="Chase's Pow Outlook", layout="wide")
 
-with st.sidebar:
-    with st.expander("Filters", expanded=False):
-        resort_keys_sorted = sorted(list(RESORTS.keys()))
-        default_index = resort_keys_sorted.index("Tamarack (ID)") if "Tamarack (ID)" in resort_keys_sorted else 0
+with st.sidebar ("Filters"):
+    resort_keys_sorted = sorted(list(RESORTS.keys()))
+    default_index = resort_keys_sorted.index("Tamarack (ID)") if "Tamarack (ID)" in resort_keys_sorted else 0
 
-        resort_choice = st.selectbox("Choose resort", resort_keys_sorted, index=default_index)
-        resort = RESORTS[resort_choice]
+    resort_choice = st.selectbox("Choose resort", resort_keys_sorted, index=default_index)
+    resort = RESORTS[resort_choice]
 
-        elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
-        resort_elev_ft = (
-            resort["base_ft"] if elev_choice == "Base"
-            else resort["mid_ft"] if elev_choice == "Mid"
-            else resort["summit_ft"]
-        )
+    elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
+    resort_elev_ft = (
+        resort["base_ft"] if elev_choice == "Base"
+        else resort["mid_ft"] if elev_choice == "Mid"
+        else resort["summit_ft"]
+    )
 
-        days = st.slider("Days ahead (forecast)", 1, 16, 7)
-        show_history = st.checkbox("Show previous days snow totals", value=True)
-        history_days = st.number_input("History days to fetch", 1, 30, 7)
+    days = st.slider("Days ahead (forecast)", 1, 16, 7)
+    show_history = st.checkbox("Show previous days snow totals", value=True)
+    history_days = st.number_input("History days to fetch", 1, 30, 7)
+
 
 # Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
