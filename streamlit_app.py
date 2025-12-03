@@ -82,6 +82,12 @@ RESORTS = {
 
 VALID_MODELS = {"gfs_seamless", "icon_seamless", "ecmwf_ifs04"}
 
+# Light blue theme colors
+COLOR_PRIMARY = "#5DADE2"     # main blue
+COLOR_ACCENT = "#1B4F72"      # dark accent
+COLOR_FILL = "#AED6F1"        # light fill
+TABLE_BG = "#e6f2ff"          # very light blue for tables
+
 # ====== Helpers ======
 def feet_to_m(ft): return ft * 0.3048
 def mm_to_inches(mm): return mm / 25.4
@@ -98,6 +104,7 @@ def _safe_get(url, timeout=30):
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
+        # Best-effort to show API reason
         try:
             msg = r.json().get("reason", "")
         except Exception:
@@ -114,7 +121,7 @@ def fetch_forecast(lat, lon, tz, model, start_dt, end_dt, base_ft):
         f"&end_date={end_dt.date()}"
         f"&timezone=UTC"
     )
-    url = base + f"&models={model}" if model else base
+    url = base + (f"&models={model}" if model else "")
     j = _safe_get(url)
     times = pd.to_datetime(j["hourly"]["time"]).tz_localize("UTC").tz_convert(tz)
     temps = j["hourly"]["temperature_2m"]
@@ -143,8 +150,8 @@ def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
     return df, elev
 
 # ====== UI ======
-st.set_page_config(page_title="Idaho Resorts — OpenSnow-style Forecast", layout="wide")
-st.title("Idaho & Nearby Resorts — OpenSnow-style Forecast (Demo)")
+st.set_page_config(page_title="Idaho & Nearby Resorts — OpenSnow-style Forecast", layout="wide")
+st.title("Idaho & Nearby Resorts — OpenSnow-style Forecast")
 
 with st.sidebar:
     st.header("Options")
@@ -152,12 +159,11 @@ with st.sidebar:
     resort = RESORTS[resort_choice]
 
     elev_choice = st.radio("Choose elevation", ["Base", "Mid", "Summit"], index=1)
-    if elev_choice == "Base":
-        resort_elev_ft = resort["base_ft"]
-    elif elev_choice == "Mid":
-        resort_elev_ft = resort["mid_ft"]
-    else:
-        resort_elev_ft = resort["summit_ft"]
+    resort_elev_ft = (
+        resort["base_ft"] if elev_choice == "Base" else
+        resort["mid_ft"] if elev_choice == "Mid" else
+        resort["summit_ft"]
+    )
 
     models_selected = st.multiselect(
         "Models to include",
@@ -170,7 +176,6 @@ with st.sidebar:
     run_click = st.button("Run Forecast")
 
 if not run_click:
-    st.info("Choose resort and options in the sidebar and click **Run Forecast**.")
     st.stop()
 
 # ====== Dates (local to resort) ======
@@ -192,12 +197,18 @@ if show_history:
         df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
-        df_hist["model"] = "era5"
 
         hist_daily = df_hist.groupby(df_hist["time_local"].dt.date).agg({"snow_in": "sum"})
         hist_daily.index = pd.to_datetime(hist_daily.index).strftime("%m/%d/%y")
-        st.subheader(f"{resort_choice} — Previous {history_days} days snow totals (in)")
-        st.table(hist_daily.style.format({"snow_in": "{:.2f}"}))
+        hist_daily = hist_daily.rename(columns={"snow_in": "Snow (in.)"})
+        hist_daily = hist_daily.reset_index().rename(columns={"index": "Date"})
+
+        st.subheader(f"{resort_choice} — Previous {history_days} Days")
+        st.table(
+            hist_daily.style
+            .format({"Snow (in.)": "{:.2f}"})
+            .set_properties(**{"background-color": TABLE_BG})
+        )
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
@@ -235,55 +246,43 @@ out["snow_std"] = pivot.std(axis=1).fillna(0.0)
 st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
 fig, ax = plt.subplots(figsize=(12, 4))
 t = out.index
-ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", alpha=0.6)
-ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)")
-ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"], alpha=0.2, label="Ensemble ±1σ")
+ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", color=COLOR_PRIMARY, alpha=0.7)
+ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)", color=COLOR_ACCENT)
+ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"],
+                alpha=0.25, color=COLOR_FILL, label="Ensemble ±1σ")
 ax.set_xlabel("Local time")
 ax.set_ylabel("Snow (in)")
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
 ax.legend()
+fig.set_facecolor("white")
+ax.set_facecolor("#f8fbff")
 st.pyplot(fig)
-
-# ====== Hourly table ======
-st.subheader("Hourly table (first 120 rows)")
-display_df = out.reset_index().rename(columns={"index": "time_local"}).head(120)
-display_df["time_local"] = display_df["time_local"].dt.strftime("%m/%d/%y %H:%M")
-st.dataframe(display_df.style.format({
-    "snow_mean": "{:.2f}",
-    "snow_std": "{:.2f}"
-}))
-csv = display_df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    "Download CSV (hourly)",
-    data=csv,
-    file_name=f"{resort_choice.lower().replace(' ','_').replace('(','').replace(')','')}_forecast_hourly.csv",
-    mime="text/csv"
-)
 
 # ====== Daily totals summary (local dates) ======
 st.subheader("Daily Totals Summary")
 out_daily = out.copy()
 out_daily["local_date"] = out_daily.index.date
-daily_totals = out_daily.groupby("local_date").agg({
-    "snow_mean": "sum",
-    "snow_std": "mean"
-}).rename(columns={
-    "snow_mean": "Snow (in)",
-    "snow_std": "Std Dev"
-})
+daily_totals = out_daily.groupby("local_date").agg({"snow_mean": "sum"}).rename(columns={"snow_mean": "Snow (in.)"})
 daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
 
-# Table
-st.table(daily_totals.style.format({
-    "Snow (in)": "{:.2f}",
-    "Std Dev": "{:.2f}"
-}))
+# Table with desired labels and light blue styling
+daily_table = daily_totals.reset_index().rename(columns={"index": "Date"})
+st.table(
+    daily_table.style
+    .format({"Snow (in.)": "{:.2f}"})
+    .set_properties(**{"background-color": TABLE_BG})
+)
 
-# Bar chart (daily snow only)
+# Bar chart (daily snow only) with diagonal x labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
-ax2.bar(daily_totals.index, daily_totals["Snow (in)"], color="skyblue", label="Daily Snow (in)")
+ax2.bar(daily_totals.index, daily_totals["Snow (in.)"], color=COLOR_PRIMARY, label="Daily Snow (in.)", alpha=0.9)
 ax2.set_xlabel("Date (MM/DD/YY)")
-ax2.set_ylabel("Snow (in)")
+ax2.set_ylabel("Snow (in.)")
+ax2.spines["top"].set_visible(False)
+ax2.spines["right"].set_visible(False)
+plt.xticks(rotation=30, ha="right")  # diagonal-ish for readability
 ax2.legend()
+fig2.set_facecolor("white")
+ax2.set_facecolor("#f8fbff")
 st.pyplot(fig2)
-
-st.info("Note: Historical data comes from Open‑Meteo archive API; forecast from standard API.")
