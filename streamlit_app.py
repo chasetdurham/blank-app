@@ -94,6 +94,39 @@ RESORTS = {
     # YouTube live cam link you provided
     "webcam_url": "https://www.youtube.com/embed/taDZzy8yMTw?si=RM06dEVWWjFaZRDg"
 },
+    "Kiroro (JP)": {
+    "lat": 43.06, "lon": 140.99,   # approximate coordinates for Kiroro Ski Resort
+    "base_ft": 1900, "mid_ft": 2600, "summit_ft": 3800,  # adjust if you want more precise
+    "tz": ZoneInfo("Asia/Tokyo"),
+    "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
+    # YouTube live cam link you provided
+    "webcam_url": "https://www.youtube.com/embed/YlUSsQruxAM?si=D87jcxjDJTSNqXMo"
+},
+"Mt. Bachelor (OR)": {
+    "lat": 43.983, "lon": -121.688,   # approximate coordinates for Mt. Bachelor Ski Resort
+    "base_ft": 5700, "mid_ft": 7000, "summit_ft": 9065,
+    "tz": ZoneInfo("America/Los_Angeles"),
+    "colors": {"primary": "#2980b9", "accent": "#1a5276", "fill": "#aed6f1"},
+    # YouTube live cam link you provided
+    "webcam_url": "https://www.youtube.com/embed/jF9f7hsdlJg?si=8Y7OdUnMglvY9_Xx"
+},
+"Snowbird (UT)": {
+    "lat": 40.581, "lon": -111.654,   # approximate coordinates for Snowbird Ski Resort
+    "base_ft": 7760, "mid_ft": 9000, "summit_ft": 11000,
+    "tz": ZoneInfo("America/Denver"),
+    "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a3e4d7"},
+    # Official Snowstake webcam page
+    "webcam_url": "https://www.snowbird.com/the-mountain/webcams/view-all-webcams/snowstake-webcam/"
+},
+"Alta (UT)": {
+    "lat": 40.588, "lon": -111.638,   # approximate coordinates for Alta Ski Area
+    "base_ft": 8530, "mid_ft": 9500, "summit_ft": 10550,
+    "tz": ZoneInfo("America/Denver"),
+    "colors": {"primary": "#8e44ad", "accent": "#4a235a", "fill": "#d7bde2"},
+    # Direct Collins Snow Stake webcam image
+    "webcam_url": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg"
+},
+
 
 }
 
