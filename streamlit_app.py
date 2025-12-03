@@ -257,6 +257,11 @@ for bar in bars:
     ax2.annotate(f"{h:.1f}", xy=(bar.get_x() + bar.get_width() / 2, h), xytext=(0, 3),
                  textcoords="offset points", ha="center", va="bottom", fontsize=9, color="black")
 
+
+fig2.set_facecolor("white")
+ax2.set_facecolor("#fbfdff")
+st.pyplot(fig2)
+
 # ====== Live Cams (at bottom) ======
 if "webcam_urls" in resort and resort["webcam_urls"]:
     st.subheader("Live Cams")
@@ -268,8 +273,3 @@ elif "webcam_url" in resort and resort["webcam_url"]:
         st.video(resort["webcam_url"])
     else:
         st.components.v1.iframe(resort["webcam_url"], height=400)
-
-
-fig2.set_facecolor("white")
-ax2.set_facecolor("#fbfdff")
-st.pyplot(fig2)
