@@ -1,5 +1,5 @@
 """
-Streamlit app: OpenSnow-style ensemble for Idaho and nearby resorts.
+Streamlit app: Chase's Pow Outlook for Idaho & nearby resorts.
 Uses Open-Meteo forecast for future, and historical API for past data.
 Run with: streamlit run idaho_resorts_forecast.py
 """
@@ -19,74 +19,92 @@ RESORTS = {
     "Tamarack (ID)": {
         "lat": 44.671, "lon": -116.123,
         "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/2/2a/Tamarack_Resort_logo.png"
     },
     "Sun Valley (ID)": {
         "lat": 43.697, "lon": -114.351,
         "base_ft": 5750, "mid_ft": 7200, "summit_ft": 9150,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#e67e22", "accent": "#873600", "fill": "#f5cba7"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/3/3a/Sun_Valley_Resort_logo.png"
     },
     "Bogus Basin (ID)": {
         "lat": 43.767, "lon": -116.101,
         "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/7/7a/Bogus_Basin_logo.png"
     },
     "Brundage (ID)": {
         "lat": 45.004, "lon": -116.155,
         "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/8/8a/Brundage_Mountain_logo.png"
     },
     "Pomerelle (ID)": {
         "lat": 42.314, "lon": -113.563,
         "base_ft": 8100, "mid_ft": 8600, "summit_ft": 9000,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#2ecc71", "accent": "#1d8348", "fill": "#d5f5e3"},
+        "logo_url": ""
     },
     "Soldier Mountain (ID)": {
         "lat": 43.481, "lon": -114.920,
         "base_ft": 5700, "mid_ft": 6800, "summit_ft": 7100,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#7f8c8d", "accent": "#34495e", "fill": "#d6dbdf"},
+        "logo_url": ""
     },
     "Kelly Canyon (ID)": {
         "lat": 43.605, "lon": -111.587,
         "base_ft": 5700, "mid_ft": 6100, "summit_ft": 6600,
-        "tz": ZoneInfo("America/Boise")
+        "tz": ZoneInfo("America/Boise"),
+        "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a2d9ce"},
+        "logo_url": ""
     },
     # Pacific Time (America/Los_Angeles) — Idaho Panhandle
     "Schweitzer (ID)": {
         "lat": 48.369, "lon": -116.623,
         "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
-        "tz": ZoneInfo("America/Los_Angeles")
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/9/9a/Schweitzer_logo.png"
     },
     "Silver Mountain (ID)": {
         "lat": 47.529, "lon": -116.120,
         "base_ft": 4700, "mid_ft": 5500, "summit_ft": 6300,
-        "tz": ZoneInfo("America/Los_Angeles")
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"},
+        "logo_url": ""
     },
     "Lookout Pass (ID/MT)": {
         "lat": 47.456, "lon": -115.713,
         "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
-        "tz": ZoneInfo("America/Los_Angeles")
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
+        "logo_url": ""
     },
     # Nearby (Wyoming) requested
     "Grand Targhee (WY)": {
         "lat": 43.789, "lon": -110.957,
         "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
-        "tz": ZoneInfo("America/Denver")
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/6/6a/Grand_Targhee_logo.png"
     },
     "Jackson Hole (WY)": {
         "lat": 43.587, "lon": -110.827,
         "base_ft": 6311, "mid_ft": 8000, "summit_ft": 10450,
-        "tz": ZoneInfo("America/Denver")
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"},
+        "logo_url": "https://upload.wikimedia.org/wikipedia/en/5/5a/Jackson_Hole_logo.png"
     },
 }
 
 VALID_MODELS = {"gfs_seamless", "icon_seamless", "ecmwf_ifs04"}
-
-# Light blue theme colors
-COLOR_PRIMARY = "#5DADE2"     # main blue
-COLOR_ACCENT = "#1B4F72"      # dark accent
-COLOR_FILL = "#AED6F1"        # light fill
-TABLE_BG = "#e6f2ff"          # very light blue for tables
 
 # ====== Helpers ======
 def feet_to_m(ft): return ft * 0.3048
@@ -104,7 +122,6 @@ def _safe_get(url, timeout=30):
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
-        # Best-effort to show API reason
         try:
             msg = r.json().get("reason", "")
         except Exception:
@@ -150,11 +167,9 @@ def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
     return df, elev
 
 # ====== UI ======
-st.set_page_config(page_title="Idaho & Nearby Resorts — OpenSnow-style Forecast", layout="wide")
-st.title("Idaho & Nearby Resorts — OpenSnow-style Forecast")
+st.set_page_config(page_title="Chase's Pow Outlook", layout="wide")
 
 with st.sidebar:
-    st.header("Options")
     resort_choice = st.selectbox("Choose resort", sorted(list(RESORTS.keys())))
     resort = RESORTS[resort_choice]
 
@@ -177,6 +192,11 @@ with st.sidebar:
 
 if not run_click:
     st.stop()
+
+# Logo + dynamic title
+if resort.get("logo_url"):
+    st.image(resort["logo_url"], width=200)
+st.title(f"Chase's {resort_choice} Pow Outlook")
 
 # ====== Dates (local to resort) ======
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
@@ -207,7 +227,6 @@ if show_history:
         st.table(
             hist_daily.style
             .format({"Snow (in.)": "{:.2f}"})
-            .set_properties(**{"background-color": TABLE_BG})
         )
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
@@ -243,20 +262,21 @@ out["snow_mean"] = pivot.mean(axis=1)
 out["snow_std"] = pivot.std(axis=1).fillna(0.0)
 
 # ====== Forecast plot (Hourly, local time) ======
+colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
 st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
 fig, ax = plt.subplots(figsize=(12, 4))
 t = out.index
-ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", color=COLOR_PRIMARY, alpha=0.7)
-ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)", color=COLOR_ACCENT)
+ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", color=colors["primary"], alpha=0.7)
+ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)", color=colors["accent"])
 ax.fill_between(t, out["snow_mean"] - out["snow_std"], out["snow_mean"] + out["snow_std"],
-                alpha=0.25, color=COLOR_FILL, label="Ensemble ±1σ")
+                alpha=0.25, color=colors["fill"], label="Ensemble ±1σ")
 ax.set_xlabel("Local time")
 ax.set_ylabel("Snow (in)")
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.legend()
 fig.set_facecolor("white")
-ax.set_facecolor("#f8fbff")
+ax.set_facecolor("#fbfdff")
 st.pyplot(fig)
 
 # ====== Daily totals summary (local dates) ======
@@ -266,17 +286,16 @@ out_daily["local_date"] = out_daily.index.date
 daily_totals = out_daily.groupby("local_date").agg({"snow_mean": "sum"}).rename(columns={"snow_mean": "Snow (in.)"})
 daily_totals.index = pd.to_datetime(daily_totals.index).strftime("%m/%d/%y")
 
-# Table with desired labels and light blue styling
+# Table with desired labels
 daily_table = daily_totals.reset_index().rename(columns={"index": "Date"})
 st.table(
     daily_table.style
     .format({"Snow (in.)": "{:.2f}"})
-    .set_properties(**{"background-color": TABLE_BG})
 )
 
 # Bar chart (daily snow only) with diagonal x labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
-ax2.bar(daily_totals.index, daily_totals["Snow (in.)"], color=COLOR_PRIMARY, label="Daily Snow (in.)", alpha=0.9)
+ax2.bar(daily_totals.index, daily_totals["Snow (in.)"], color=colors["primary"], label="Daily Snow (in.)", alpha=0.9)
 ax2.set_xlabel("Date (MM/DD/YY)")
 ax2.set_ylabel("Snow (in.)")
 ax2.spines["top"].set_visible(False)
@@ -284,5 +303,5 @@ ax2.spines["right"].set_visible(False)
 plt.xticks(rotation=30, ha="right")  # diagonal-ish for readability
 ax2.legend()
 fig2.set_facecolor("white")
-ax2.set_facecolor("#f8fbff")
+ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
