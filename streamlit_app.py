@@ -277,7 +277,7 @@ for m in models:
         model_frames.append(df_fcst[["time_local", "t_C_adj", "qpf_in", "slr", "snow_in", "model"]])
 
     except Exception as e:
-        st.warning("Some historical days show 0 snowfall using the ERA5-derived method. This occurs when ERA5 reports zero liquid precipitation at that grid point. If you have station observations (SnowStake / resort obs), we can integrate them for more accurate measured totals.")), we can integrate them for more accurate measured totals."), we can integrate them for more accurate measured totals.")
+        st.warning("Some historical days show 0 snowfall using the ERA5-derived method. This occurs when ERA5 reports zero liquid precipitation at that grid point. If you have station observations (SnowStake / resort obs), we can integrate them for more accurate measured totals.")
 
 if not model_frames:
     st.error("No model data available. Try fewer days or check network.")
@@ -433,6 +433,7 @@ elif "webcam_url" in resort and resort["webcam_url"]:
         st.video(resort["webcam_url"])
     else:
         st.components.v1.iframe(resort["webcam_url"], height=400)
+
 
 
 
