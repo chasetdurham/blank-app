@@ -303,6 +303,10 @@ if show_history:
         df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
+        # Fix zero snow if qpf > 0
+        df_hist.loc[(df_hist["qpf_in"] > 0) & (df_hist["snow_in"] == 0), "snow_in"] = \
+            df_hist["qpf_in"] * 10  # minimum SLR 10:1
+
         hist_daily = (
             df_hist.groupby(df_hist["time_local"].dt.date)
                    .agg({"qpf_in": "sum", "snow_in": "sum"})
@@ -319,7 +323,7 @@ if show_history:
         hist_display["Liquid (in.)"] = hist_display["Liquid (in.)"].map("{:.2f}".format)
 
         # Warn user if some historical days show zero snow
-        zero_days = hist_daily[hist_daily["Snow (in.)"] == 0]
+        zero_days = hist_daily[hist_daily["Snow (in.)"].astype(float) == 0]
         if not zero_days.empty:
             st.warning(
                 "Some historical days show 0\" snowfall per ERA5/derived method. "
@@ -332,7 +336,7 @@ if show_history:
         # Previous days bar chart
         fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
         bars_prev = ax_prev.bar(
-            hist_daily["Date"], hist_daily["Snow (in.)"],
+            hist_daily["Date"], hist_daily["Snow (in.)"].astype(float),
             color=colors["primary"], alpha=0.9, label="Daily Snow (in.)"
         )
         ax_prev.set_xlabel("Date (MM/DD/YY)")
@@ -353,6 +357,7 @@ if show_history:
 
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
+
 
 # ===== Live Cams (at bottom) =====
 if "webcam_urls" in resort and resort["webcam_urls"]:
