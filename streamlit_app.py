@@ -285,7 +285,7 @@ daily_totals["Avg_SLR_ratio"] = weighted_slr
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 daily_display = daily_totals[["Date","Snow (in.)","Avg_SLR_ratio"]].reset_index(drop=True)
 daily_display["Snow (in.)"] = daily_display["Snow (in.)"].map("{:.1f}".format)
-daily_display["Avg_SLR_ratio"] = daily_display["Avg_SLR_ratio"].map("{:.1f}:1".format)
+daily_display["Avg_SLR_ratio"] = daily_display["Avg_SLR_ratio"].map("{:.0f}:1".format)
 st.dataframe(daily_display, hide_index=True)
 # ===== History (Method A: precip * SLR) =====
 if show_history:
