@@ -2,6 +2,14 @@
 Streamlit app: Chase's Pow Outlook for Idaho & nearby resorts.
 Uses Open-Meteo forecast for future, and historical API for past data.
 Run with: streamlit run idaho_resorts_forecast.py
+
+Features in this version:
+- Adds a Snow-to-Liquid Ratio (SLR) column on the forecasted table (daily avg SLR weighted by liquid)
+- Uses dynamic SLR curve based on temperature (SLR Method B)
+- Historical snow totals computed from past precipitation × SLR (Historical Method A)
+- Better handling for Japanese resorts and model fallbacks
+- Improved error handling and helpful warnings when history is 0
+
 """
 
 import streamlit as st
@@ -18,12 +26,12 @@ RESORTS = {
         "base_ft": 4900, "mid_ft": 6600, "summit_ft": 7700,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"},
-        # Two YouTube cameras
         "webcam_urls": [
             "https://www.youtube.com/embed/TuXoTi6Y5Uc?si=Y4VNHqFwmGlxIPtc",
             "https://www.youtube.com/embed/3fJt-3O3bec?si=ZeGBlBpRqEFz6jH2"
         ]
     },
+
     "Brundage (ID)": {
         "lat": 45.004, "lon": -116.155,
         "base_ft": 5776, "mid_ft": 7000, "summit_ft": 7640,
@@ -31,14 +39,14 @@ RESORTS = {
         "colors": {"primary": "#3498db", "accent": "#1a5276", "fill": "#aed6f1"},
         "webcam_url": "https://brundage.com/live-cams/?title=base-area-snow-cam"
     },
+
     "Bogus Basin (ID)": {
         "lat": 43.767, "lon": -116.101,
         "base_ft": 5800, "mid_ft": 7000, "summit_ft": 7600,
         "tz": ZoneInfo("America/Boise"),
         "colors": {"primary": "#27ae60", "accent": "#145a32", "fill": "#abebc6"},
-        # Use the YouTube embed link you provided
-    "webcam_url": "https://www.youtube.com/embed/g714uvR8Rjg?si=ranKNhTUPB_jbmYs"
-},
+        "webcam_url": "https://www.youtube.com/embed/g714uvR8Rjg?si=ranKNhTUPB_jbmYs"
+    },
 
     "Sun Valley (ID)": {
         "lat": 43.697, "lon": -114.351,
@@ -47,14 +55,14 @@ RESORTS = {
         "colors": {"primary": "#e67e22", "accent": "#873600", "fill": "#f5cba7"},
         "webcam_url": "https://www.sunvalley.com/mountain/webcams"
     },
+
     "Schweitzer (ID)": {
         "lat": 48.369, "lon": -116.623,
         "base_ft": 3900, "mid_ft": 5000, "summit_ft": 6400,
         "tz": ZoneInfo("America/Los_Angeles"),
         "colors": {"primary": "#9b59b6", "accent": "#4a235a", "fill": "#d7bde2"},
-       # Use the YouTube embed link you provided
-    "webcam_url": "https://www.youtube.com/embed/osT7v3ZS9bI?si=zQ6mfkiuhcY_2Dv-"
-},
+        "webcam_url": "https://www.youtube.com/embed/osT7v3ZS9bI?si=zQ6mfkiuhcY_2Dv-"
+    },
 
     "Silver Mountain (ID)": {
         "lat": 47.529, "lon": -116.120,
@@ -63,6 +71,7 @@ RESORTS = {
         "colors": {"primary": "#95a5a6", "accent": "#2c3e50", "fill": "#ccd1d1"},
         "webcam_url": "https://silvermt.com/webcams"
     },
+
     "Lookout Pass (ID/MT)": {
         "lat": 47.456, "lon": -115.713,
         "base_ft": 4500, "mid_ft": 5000, "summit_ft": 5600,
@@ -70,14 +79,14 @@ RESORTS = {
         "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
         "webcam_url": "https://skilookout.com/webcams"
     },
+
     "Grand Targhee (WY)": {
         "lat": 43.789, "lon": -110.957,
         "base_ft": 8000, "mid_ft": 8500, "summit_ft": 9920,
         "tz": ZoneInfo("America/Denver"),
         "colors": {"primary": "#f1c40f", "accent": "#7d6608", "fill": "#f9e79f"},
-        # Use the YouTube embed link you provided
-    "webcam_url": "https://www.youtube.com/embed/B4KTi91qL-4?si=qNu8NHUdGn-M9tOr"
-},
+        "webcam_url": "https://www.youtube.com/embed/B4KTi91qL-4?si=qNu8NHUdGn-M9tOr"
+    },
 
     "Jackson Hole (WY)": {
         "lat": 43.587, "lon": -110.827,
@@ -86,93 +95,121 @@ RESORTS = {
         "colors": {"primary": "#c0392b", "accent": "#641e16", "fill": "#f5b7b1"},
         "webcam_url": "https://www.jacksonhole.com/live-mountain-cams"
     },
-"Niseko Grand Hirafu (JP)": {
-    "lat": 42.856, "lon": 140.704,   # approximate coordinates
-    "base_ft": 1000, "mid_ft": 2500, "summit_ft": 4000,  # adjust if you want more precise
-    "tz": ZoneInfo("Asia/Tokyo"),
-    "colors": {"primary": "#2ecc71", "accent": "#145a32", "fill": "#abebc6"},
-    # YouTube live cam link you provided
-    "webcam_url": "https://www.youtube.com/embed/taDZzy8yMTw?si=RM06dEVWWjFaZRDg"
-},
+
+    # JAPAN (positive longitudes)
+    "Niseko Grand Hirafu (JP)": {
+        "lat": 42.856, "lon": 140.704,
+        "base_ft": 1000, "mid_ft": 2500, "summit_ft": 4000,
+        "tz": ZoneInfo("Asia/Tokyo"),
+        "colors": {"primary": "#2ecc71", "accent": "#145a32", "fill": "#abebc6"},
+        "webcam_url": "https://www.youtube.com/embed/taDZzy8yMTw?si=RM06dEVWWjFaZRDg"
+    },
+
     "Kiroro (JP)": {
-    "lat": 43.06, "lon": 140.99,   # approximate coordinates for Kiroro Ski Resort
-    "base_ft": 1900, "mid_ft": 2600, "summit_ft": 3800,  # adjust if you want more precise
-    "tz": ZoneInfo("Asia/Tokyo"),
-    "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
-    # YouTube live cam link you provided
-    "webcam_url": "https://www.youtube.com/embed/YlUSsQruxAM?si=D87jcxjDJTSNqXMo"
-},
-"Mt. Bachelor (OR)": {
-    "lat": 43.983, "lon": -121.688,   # approximate coordinates for Mt. Bachelor Ski Resort
-    "base_ft": 5700, "mid_ft": 7000, "summit_ft": 9065,
-    "tz": ZoneInfo("America/Los_Angeles"),
-    "colors": {"primary": "#2980b9", "accent": "#1a5276", "fill": "#aed6f1"},
-    # YouTube live cam link you provided
-    "webcam_url": "https://www.youtube.com/embed/jF9f7hsdlJg?si=8Y7OdUnMglvY9_Xx"
-},
-"Snowbird (UT)": {
-    "lat": 40.581, "lon": -111.654,   # approximate coordinates for Snowbird Ski Resort
-    "base_ft": 7760, "mid_ft": 9000, "summit_ft": 11000,
-    "tz": ZoneInfo("America/Denver"),
-    "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a3e4d7"},
-    # Official Snowstake webcam page
-    "webcam_url": "https://www.snowbird.com/the-mountain/webcams/view-all-webcams/snowstake-webcam/"
-},
-"Alta (UT)": {
-    "lat": 40.588, "lon": -111.638,   # approximate coordinates for Alta Ski Area
-    "base_ft": 8530, "mid_ft": 9500, "summit_ft": 10550,
-    "tz": ZoneInfo("America/Denver"),
-    "colors": {"primary": "#8e44ad", "accent": "#4a235a", "fill": "#d7bde2"},
-    # Direct Collins Snow Stake webcam image
-    "webcam_url": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg"
-},
+        "lat": 43.06, "lon": 140.99,
+        "base_ft": 1900, "mid_ft": 2600, "summit_ft": 3800,
+        "tz": ZoneInfo("Asia/Tokyo"),
+        "colors": {"primary": "#e74c3c", "accent": "#922b21", "fill": "#f5b7b1"},
+        "webcam_url": "https://www.youtube.com/embed/YlUSsQruxAM?si=D87jcxjDJTSNqXMo"
+    },
 
+    "Mt. Bachelor (OR)": {
+        "lat": 43.983, "lon": -121.688,
+        "base_ft": 5700, "mid_ft": 7000, "summit_ft": 9065,
+        "tz": ZoneInfo("America/Los_Angeles"),
+        "colors": {"primary": "#2980b9", "accent": "#1a5276", "fill": "#aed6f1"},
+        "webcam_url": "https://www.youtube.com/embed/jF9f7hsdlJg?si=8Y7OdUnMglvY9_Xx"
+    },
 
+    "Snowbird (UT)": {
+        "lat": 40.581, "lon": -111.654,
+        "base_ft": 7760, "mid_ft": 9000, "summit_ft": 11000,
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#16a085", "accent": "#0b5345", "fill": "#a3e4d7"},
+        "webcam_url": "https://www.snowbird.com/the-mountain/webcams/view-all-webcams/snowstake-webcam/"
+    },
+
+    "Alta (UT)": {
+        "lat": 40.588, "lon": -111.638,
+        "base_ft": 8530, "mid_ft": 9500, "summit_ft": 10550,
+        "tz": ZoneInfo("America/Denver"),
+        "colors": {"primary": "#8e44ad", "accent": "#4a235a", "fill": "#d7bde2"},
+        "webcam_url": "https://altaskiarea.s3-us-west-2.amazonaws.com/mountain-cams/Collins_Snow_Stake.jpg"
+    },
 }
 
+# Default ensemble models (non-Japan resorts)
 DEFAULT_MODELS = ["gfs_seamless", "icon_seamless"]
 
 # ====== Helpers ======
-def feet_to_m(ft): return ft * 0.3048
-def mm_to_inches(mm): return mm / 25.4
+def feet_to_m(ft):
+    return ft * 0.3048
+
+def mm_to_inches(mm):
+    return mm / 25.4
+
+# SLR method B: dynamic SLR curve based on temperature (deg C)
 def slr_from_temp(tc):
-    if tc <= -12: return 22.0
-    if tc <= -6: return 18.0
-    if tc <= -2: return 14.0
-    if tc <= 0: return 10.0
-    return 7.0
+    """Return snow-to-liquid ratio (inches per inch liquid) given temperature C.
+    These breakpoints reflect method B from the user's choice.
+    """
+    # We'll return ratio (e.g., 10.0 -> 10:1). Keep as float.
+    if tc >= 0:
+        return 5.0
+    if tc >= -1:
+        return 7.0
+    if tc >= -2:
+        return 9.0
+    if tc >= -6:
+        return 12.0
+    if tc >= -8:
+        return 15.0
+    if tc >= -12:
+        return 18.0
+    return 22.0
+
 
 def _safe_get(url, timeout=30):
     r = requests.get(url, timeout=timeout)
     r.raise_for_status()
     return r.json()
 
+
+def get_models_for_resort(resort_name):
+    # Japan: prefer JMA MSM; otherwise use defaults
+    if "(JP)" in resort_name or "JP" in resort_name:
+        return ["jma_msm"]
+    return DEFAULT_MODELS
+
+
 def fetch_forecast(lat, lon, tz, model, start_dt, end_dt, base_ft):
     base = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         f"&hourly=temperature_2m,precipitation"
-        f"&start_date={start_dt.date()}"
-        f"&end_date={end_dt.date()}"
+        f"&start_date={start_dt.date()}&end_date={end_dt.date()}"
         f"&timezone=UTC"
     )
     url = base + (f"&models={model}" if model else "")
     j = _safe_get(url)
+
     times = pd.to_datetime(j["hourly"]["time"]).tz_localize("UTC").tz_convert(tz)
     temps = j["hourly"]["temperature_2m"]
     qpf = j["hourly"]["precipitation"]
     elev = j.get("elevation", feet_to_m(base_ft))
+
     df = pd.DataFrame({"time_local": times, "t_C": temps, "qpf_mm": qpf})
     df = df[(df["time_local"] >= start_dt) & (df["time_local"] <= end_dt)].reset_index(drop=True)
     return df, elev
 
+
 def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
+    # Use ERA5 archive for historical hourly temp & precipitation
     url = (
         "https://archive-api.open-meteo.com/v1/archive"
         f"?latitude={lat}&longitude={lon}"
         f"&hourly=temperature_2m,precipitation"
-        f"&start_date={start_dt.date()}"
-        f"&end_date={end_dt.date()}"
+        f"&start_date={start_dt.date()}&end_date={end_dt.date()}"
         f"&timezone=UTC&models=era5"
     )
     j = _safe_get(url)
@@ -180,11 +217,12 @@ def fetch_historical(lat, lon, tz, start_dt, end_dt, base_ft):
     temps = j["hourly"]["temperature_2m"]
     qpf = j["hourly"]["precipitation"]
     elev = j.get("elevation", feet_to_m(base_ft))
+
     df = pd.DataFrame({"time_local": times, "t_C": temps, "qpf_mm": qpf})
     df = df[(df["time_local"] >= start_dt) & (df["time_local"] <= end_dt)].reset_index(drop=True)
     return df, elev
 
-# ====== UI ======
+# ===== UI =====
 st.set_page_config(page_title="Chase's Pow Outlook", layout="wide")
 
 with st.sidebar:
@@ -205,32 +243,39 @@ with st.sidebar:
     show_history = st.checkbox("Show previous days snow totals", value=True)
     history_days = st.number_input("History days to fetch", 1, 30, 7)
 
-
 # Dynamic title
 st.title(f"Chase's {resort_choice} Pow Outlook")
 
-# ====== Dates ======
+# ===== Dates =====
 NOW_LOCAL = datetime.datetime.now(resort["tz"]).replace(minute=0, second=0, microsecond=0)
 FORECAST_END_LOCAL = NOW_LOCAL + datetime.timedelta(days=days)
 HIST_START_LOCAL = NOW_LOCAL - datetime.timedelta(days=history_days)
 HIST_END_LOCAL = NOW_LOCAL - datetime.timedelta(hours=1)
 
-# ====== Forecast (ensemble across default models) ======
+# ===== Forecast (ensemble across models for this resort) =====
 model_frames = []
-for m in DEFAULT_MODELS or [None]:
+models = get_models_for_resort(resort_choice)
+
+for m in models:
     try:
         df_fcst, elev_fcst = fetch_forecast(
             resort["lat"], resort["lon"], resort["tz"],
             m, NOW_LOCAL, FORECAST_END_LOCAL, resort["base_ft"]
         )
+
+        # lapse rate adjustment from model elevation to chosen elevation
         lapse = 0.0065  # K per meter
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_fcst) * lapse
+
         df_fcst["t_C_adj"] = df_fcst["t_C"] + temp_adj
         df_fcst["qpf_in"] = df_fcst["qpf_mm"].apply(mm_to_inches)
+        # Apply dynamic SLR per-hour (Method B)
         df_fcst["slr"] = df_fcst["t_C_adj"].apply(slr_from_temp)
         df_fcst["snow_in"] = df_fcst["qpf_in"] * df_fcst["slr"]
         df_fcst["model"] = m or "auto"
+
         model_frames.append(df_fcst[["time_local", "t_C_adj", "qpf_in", "slr", "snow_in", "model"]])
+
     except Exception as e:
         st.warning(f"Forecast model {m or 'auto'} failed: {e}")
 
@@ -238,17 +283,22 @@ if not model_frames:
     st.error("No model data available. Try fewer days or check network.")
     st.stop()
 
-# ====== Ensemble aggregation ======
+# ===== Ensemble aggregation =====
 ensemble_df = pd.concat(model_frames, ignore_index=True)
-pivot = ensemble_df.pivot_table(index="time_local", columns="model", values="snow_in")
-out = pd.DataFrame(index=pivot.index)
-out["snow_mean"] = pivot.mean(axis=1)
-out["snow_std"] = pivot.std(axis=1).fillna(0.0)
+# mean across models for snow_in and slr
+pivot_snow = ensemble_df.pivot_table(index="time_local", columns="model", values="snow_in")
+pivot_slr = ensemble_df.pivot_table(index="time_local", columns="model", values="slr")
 
-# ====== Forecast plot (Hourly, local time) ======
+out = pd.DataFrame(index=pivot_snow.index)
+out["snow_mean"] = pivot_snow.mean(axis=1)
+out["snow_std"] = pivot_snow.std(axis=1).fillna(0.0)
+out["slr_mean"] = pivot_slr.mean(axis=1)
+
+# ===== Forecast plot (Hourly, local time) =====
 colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
 st.subheader(f"{resort_choice} — Forecast (Hourly, Local Time)")
 fig, ax = plt.subplots(figsize=(12, 4))
+
 t = out.index
 ax.bar(t, out["snow_mean"], width=0.03, label="Hourly snow (in)", color=colors["primary"], alpha=0.7)
 ax.plot(t, out["snow_mean"].rolling(24, min_periods=1).sum(), linewidth=2, label="24‑hr rolling snow (in)", color=colors["accent"])
@@ -262,22 +312,42 @@ fig.set_facecolor("white")
 ax.set_facecolor("#fbfdff")
 st.pyplot(fig)
 
-# ====== Daily Forecast Totals Summary (local dates) ======
+# ===== Daily Forecast Totals Summary (local dates) =====
 st.subheader("Daily Forecast Totals")
+
 out_daily = out.copy()
 out_daily["Date"] = out_daily.index.date
+
+# Daily snow totals
 daily_totals = (
     out_daily.groupby("Date")
-             .agg({"snow_mean": "sum"})
+             .agg({"snow_mean": "sum", "slr_mean": "mean"})
              .reset_index()
-             .rename(columns={"snow_mean": "Snow (in.)"})
+             .rename(columns={"snow_mean": "Snow (in.)", "slr_mean": "Avg_SLR_hourly"})
 )
+
+# Compute a weighted daily avg SLR (weighted by hourly snow amount) for better physical meaning
+# We compute for each date: sum(hourly_snow * hourly_slr) / sum(hourly_snow)
+weighted_slr = []
+for d in daily_totals["Date"]:
+    mask = out_daily["Date"] == d
+    day = out_daily[mask]
+    if day["snow_mean"].sum() > 0:
+        w = (day["snow_mean"] * day["slr_mean"]).sum() / day["snow_mean"].sum()
+    else:
+        w = day["slr_mean"].mean()
+    weighted_slr.append(w)
+
+daily_totals["Avg_SLR_ratio"] = weighted_slr
+
 daily_totals["Date"] = pd.to_datetime(daily_totals["Date"]).dt.strftime("%m/%d/%y")
 
-# Display table without index column (no Styler to avoid index reappearing)
-daily_totals_display = daily_totals[["Date", "Snow (in.)"]].reset_index(drop=True)
-daily_totals_display["Snow (in.)"] = daily_totals_display["Snow (in.)"].map("{:.1f}".format)
-st.dataframe(daily_totals_display, hide_index=True)
+daily_display = daily_totals[["Date", "Snow (in.)", "Avg_SLR_ratio"]].reset_index(drop=True)
+# Format
+daily_display["Snow (in.)"] = daily_display["Snow (in.)"].map("{:.1f}".format)
+daily_display["Avg_SLR_ratio"] = daily_display["Avg_SLR_ratio"].map("{:.1f}:1".format)
+
+st.dataframe(daily_display, hide_index=True)
 
 # Bar chart (daily snow only) with diagonal x labels and data labels
 fig2, ax2 = plt.subplots(figsize=(10, 4))
@@ -298,35 +368,43 @@ fig2.set_facecolor("white")
 ax2.set_facecolor("#fbfdff")
 st.pyplot(fig2)
 
-# ====== History ======
+# ===== History (Method A: precip * SLR) =====
 if show_history:
     try:
         df_hist, elev_hist = fetch_historical(resort["lat"], resort["lon"], resort["tz"],
                                               HIST_START_LOCAL, HIST_END_LOCAL, resort["base_ft"])
+
         lapse = 0.0065  # K per meter
         temp_adj = -(feet_to_m(resort_elev_ft) - elev_hist) * lapse
+
         df_hist["t_C_adj"] = df_hist["t_C"] + temp_adj
         df_hist["qpf_in"] = df_hist["qpf_mm"].apply(mm_to_inches)
-        df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)
+        df_hist["slr"] = df_hist["t_C_adj"].apply(slr_from_temp)  # same dynamic SLR
         df_hist["snow_in"] = df_hist["qpf_in"] * df_hist["slr"]
 
         hist_daily = (
             df_hist.groupby(df_hist["time_local"].dt.date)
-                  .agg({"snow_in": "sum"})
-                  .reset_index()
-                  .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)"})
+                   .agg({"qpf_in": "sum", "snow_in": "sum"})
+                   .reset_index()
+                   .rename(columns={"time_local": "Date", "snow_in": "Snow (in.)", "qpf_in": "Liquid (in.)"})
         )
+
         hist_daily["Date"] = pd.to_datetime(hist_daily["Date"]).dt.strftime("%m/%d/%y")
 
         st.subheader(f"{resort_choice} — Previous {history_days} Days")
 
-        # Display table without index column
-        hist_daily_display = hist_daily[["Date", "Snow (in.)"]].reset_index(drop=True)
-        hist_daily_display["Snow (in.)"] = hist_daily_display["Snow (in.)"].map("{:.1f}".format)
-        st.dataframe(hist_daily_display, hide_index=True)
+        hist_display = hist_daily[["Date", "Snow (in.)", "Liquid (in.)"]].reset_index(drop=True)
+        hist_display["Snow (in.)"] = hist_display["Snow (in.)"].map("{:.1f}".format)
+        hist_display["Liquid (in.)"] = hist_display["Liquid (in.)"].map("{:.2f}".format)
+
+        # If historical totals are zero (common when precipitation is zero in ERA5), warn user and explain
+        zero_days = hist_daily[hist_daily["Snow (in.)"] == 0]
+        if not zero_days.empty:
+            st.warning("Some historical days show 0""" snowfall per ERA5/derived method. This can happen when the ERA5 archive reports zero liquid precipitation at the grid point. If you have station observations (SnowStake / resort obs) we can add them for more accurate measured totals.""")
+
+        st.dataframe(hist_display, hide_index=True)
 
         # Previous days bar chart
-        colors = resort.get("colors", {"primary": "#1f77b4", "accent": "#0d3d56", "fill": "#a6cbe3"})
         fig_prev, ax_prev = plt.subplots(figsize=(10, 3.5))
         bars_prev = ax_prev.bar(hist_daily["Date"], hist_daily["Snow (in.)"], color=colors["primary"], alpha=0.9, label="Daily Snow (in.)")
         ax_prev.set_xlabel("Date (MM/DD/YY)")
@@ -344,7 +422,7 @@ if show_history:
     except Exception as e:
         st.warning(f"Historical fetch failed: {e}")
 
-# ====== Live Cams (at bottom) ======
+# ===== Live Cams (at bottom) =====
 if "webcam_urls" in resort and resort["webcam_urls"]:
     st.subheader("Live Cams")
     for url in resort["webcam_urls"]:
@@ -355,3 +433,4 @@ elif "webcam_url" in resort and resort["webcam_url"]:
         st.video(resort["webcam_url"])
     else:
         st.components.v1.iframe(resort["webcam_url"], height=400)
+
